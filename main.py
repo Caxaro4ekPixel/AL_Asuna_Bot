@@ -90,9 +90,7 @@ def set_raw(message):
             if '/raw' in raw:
                 bot.send_message(message.chat.id, "❌Некоректно введено название❌")
             else:
-                cur.execute(f'''select * from chats where id={message.chat.id}''')
-                chat = cur.fetchone()
-                cur.execute(f'''update relesAL set raw='{raw}' where id = {chat[2]};''')
+                cur.execute(f'''update chats set raw='{raw}' where id = {message.chat.id};''')
                 con.commit()
                 bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅')
                 cur.close()
@@ -118,8 +116,7 @@ def query_handler(call):
         else:
             relese_id = call.message.text.split('\n')[1].replace('ID: ', '')
             response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
-            cur.execute(
-                f'''insert into chats (id, name, 'id_relese', code, name_ru, raw) values ({call.message.chat.id}, '{call.message.chat.title}', {int(relese_id)}, '{response['code']}', '{response['names']['ru']}', 'SubsPlease');''')
+            cur.execute(f'''insert into chats (id, name, id_relese, code, name_ru, name_en, raw) values ({call.message.chat.id}, "{call.message.chat.title}", {int(relese_id)}, "{response['code']}", "{response['names']['ru']}", "{response['names']['en']}", "SubsPlease");''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Успешно добавлено!✅')
 
         con.commit()
@@ -211,9 +208,9 @@ def check():
 
             alerts = []
             cur.execute('''SELECT * FROM chats''')
-            releseAL = cur.fetchall()
+            chats = cur.fetchall()
             for i in alerts_list:
-                for f in releseAL:
+                for f in chats:
                     if similarity(i, f[4].replace('-', ' ')) > 0.70:
 
                         file_list = []
@@ -221,11 +218,11 @@ def check():
 
                         temp = str(f[5]) + ' / ' + str(f[6]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
                             4] + '.html">[❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
-                            f[3]) + '">[🖤]</a>'
+                            f[2]) + '">[🖤]</a>'
 
                         temp = temp + "\n\n"
                         for j in alerts_list[i]:
-                            if f[7].lower() in j['title'].lower():
+                            if f[7].lower() in j['title'].lower() and 'hevc' not in j['title'].lower():
                                 response = requests.get(j['link'], allow_redirects=True)
                                 file = io.BytesIO()
                                 file.write(response.content)
@@ -237,29 +234,27 @@ def check():
                                     quality = '720p'
                                 elif '1080p' in j['title']:
                                     quality = '1080p'
-                                file.name = quality + '_' + str(f[2]) + '.torrent'
+                                file.name = quality + '_' + str(f[5]) + '.torrent'
                                 file_list.append(types.InputMediaDocument(file))
 
                                 temp = temp + '◢◤<a href="' + j['link'] + '">[' + quality + ' - ' + str(
                                     j['size']) + ']</a>◥◣\n'
                         temp = temp + "\n\n#NewSub"
-                        alerts.append([temp, file_list, f[0]])
+                        alerts.append([temp, file_list, f[2]])
 
-            cur.execute('''SELECT * FROM chats''')
-            chats = cur.fetchall()
             for i in alerts:
                 for f in chats:
                     if i[2] == f[2]:
                         if i[1]:
                             log(f"send info message in chat {f[0]} relese {f[2]}")
-                            # mess = bot.send_message(f[0], i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+                            mess = bot.send_message(f[0], i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
                             bot.send_message(734264203, i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
-                            # try:
-                            #     bot.pin_chat_message(chat_id=f[0], message_id=mess.message_id)
-                            # except:
-                            #     pass
-                            # bot.send_media_group(f[0], i[1])
+                            try:
+                                bot.pin_chat_message(chat_id=f[0], message_id=mess.message_id)
+                            except:
+                                pass
+                            bot.send_media_group(f[0], i[1])
                             cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id={f[0]} and id_relese={f[2]}''')
 
             con.commit()
@@ -316,8 +311,8 @@ def checkTime():
 
 thread1 = threading.Thread(target=check)
 thread1.start()
-thread2 = threading.Thread(target=checkTime)
-thread2.start()
+thread3 = threading.Thread(target=checkTime)
+thread3.start()
 
 if __name__ == '__main__':
     while True:
