@@ -90,9 +90,7 @@ def set_raw(message):
             if '/raw' in raw:
                 bot.send_message(message.chat.id, "❌Некоректно введено название❌")
             else:
-                cur.execute(f'''select * from chats where id={message.chat.id}''')
-                chat = cur.fetchone()
-                cur.execute(f'''update relesAL set raw='{raw}' where id = {chat[2]};''')
+                cur.execute(f'''update chats set raw='{raw}' where id = {message.chat.id};''')
                 con.commit()
                 bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅')
                 cur.close()
@@ -117,8 +115,8 @@ def query_handler(call):
                              text='Запись из этого чата уже есть, воспользуйтесь командой /update id')
         else:
             relese_id = call.message.text.split('\n')[1].replace('ID: ', '')
-            cur.execute(
-                f'''insert into chats (id, name, 'id_relese') values ({call.message.chat.id}, '{call.message.chat.title}', {int(relese_id)})''')
+            response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
+            cur.execute(f'''insert into chats (id, name, id_relese, code, name_ru, name_en, raw) values ({call.message.chat.id}, "{call.message.chat.title}", {int(relese_id)}, "{response['code']}", "{response['names']['ru']}", "{response['names']['en']}", "SubsPlease");''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Успешно добавлено!✅')
 
         con.commit()
@@ -209,22 +207,22 @@ def check():
                     break
 
             alerts = []
-            cur.execute('''SELECT * FROM relesAL''')
-            releseAL = cur.fetchall()
+            cur.execute('''SELECT * FROM chats''')
+            chats = cur.fetchall()
             for i in alerts_list:
-                for f in releseAL:
-                    if similarity(i, f[1].replace('-', ' ')) > 0.70:
+                for f in chats:
+                    if similarity(i, f[4].replace('-', ' ')) > 0.70:
 
                         file_list = []
                         log(f"new sub {alerts_list[i]}")
 
-                        temp = str(f[2]) + ' / ' + str(f[3]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
-                            1] + '.html">[❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
-                            f[0]) + '">[🖤]</a>'
+                        temp = str(f[5]) + ' / ' + str(f[6]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
+                            4] + '.html">[❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
+                            f[2]) + '">[🖤]</a>'
 
                         temp = temp + "\n\n"
                         for j in alerts_list[i]:
-                            if f[7].lower() in j['title'].lower():
+                            if f[7].lower() in j['title'].lower() and 'hevc' not in j['title'].lower():
                                 response = requests.get(j['link'], allow_redirects=True)
                                 file = io.BytesIO()
                                 file.write(response.content)
@@ -236,16 +234,14 @@ def check():
                                     quality = '720p'
                                 elif '1080p' in j['title']:
                                     quality = '1080p'
-                                file.name = quality + '_' + str(f[2]) + '.torrent'
+                                file.name = quality + '_' + str(f[5]) + '.torrent'
                                 file_list.append(types.InputMediaDocument(file))
 
                                 temp = temp + '◢◤<a href="' + j['link'] + '">[' + quality + ' - ' + str(
                                     j['size']) + ']</a>◥◣\n'
                         temp = temp + "\n\n#NewSub"
-                        alerts.append([temp, file_list, f[0]])
+                        alerts.append([temp, file_list, f[2]])
 
-            cur.execute('''SELECT * FROM chats''')
-            chats = cur.fetchall()
             for i in alerts:
                 for f in chats:
                     if i[2] == f[2]:
@@ -259,81 +255,12 @@ def check():
                             except:
                                 pass
                             bot.send_media_group(f[0], i[1])
-                            cur.execute(
-                                f'''update chats set time_alerts='{datetime.now()}' where id={f[0]} and id_relese={f[2]}''')
+                            cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id={f[0]} and id_relese={f[2]}''')
 
             con.commit()
             cur.close()
             con.close()
             time.sleep(120)
-        except Exception as err:
-            log(f"ERROR {Exception} and {err}", "error")
-            time.sleep(100)
-
-
-def getSchedule():
-    while True:
-        try:
-            log(f"start get AL schedule")
-            con = sqlite3.connect('db.db')
-            cur = con.cursor()
-            cur.execute('SELECT * FROM relesAL')
-            res = cur.fetchall()
-            release_al_old = []
-            for i in res:
-                release_al_old.append({
-                    "id": i[0],
-                    "code": i[1],
-                    "name_ru": i[2],
-                    "name_en": i[3],
-                    "name_alt": i[4],
-                    "updated": i[5],
-                    "series": i[6]
-                })
-
-            response = requests.get(f'https://api.anilibria.tv/v2/getSchedule').json()
-            release_al_new = []
-            for i in response:
-                for j in i['list']:
-                    release_al_new.append({
-                        "id": j['id'],
-                        "code": j['code'],
-                        "name_ru": j['names']['ru'],
-                        "name_en": j['names']['en'],
-                        "name_alt": j['names']['alternative'],
-                        "updated": (j['updated'] if j['updated'] is not None else -1),
-                        "series": (j['type']['series'] if j['type']['series'] is not None else -1)
-                    })
-
-            temp_old_id = []
-            temp_new_id = []
-            temp_id_rm = []
-
-            for i in release_al_old:
-                temp_old_id.append(i['id'])
-
-            for i in release_al_new:
-                temp_new_id.append(i['id'])
-
-            for i in temp_old_id:
-                if i in temp_new_id:
-                    temp_new_id.remove(i)
-                elif i not in temp_new_id:
-                    temp_id_rm.append(i)
-
-            for i in temp_id_rm:
-                cur.execute(f'DELETE FROM relesAL WHERE id = {i}')
-
-            for i in release_al_new:
-                if i['id'] in temp_new_id:
-                    cur.execute(
-                        f"""INSERT INTO relesAL (id, code, name_ru, name_en, name_alt, updated, series, raw) VALUES ({i['id']}, "{i['code']}", "{i['name_ru']}", "{i['name_en']}", "{i['name_alt']}", {i['updated']}, {i['series']}, 'SubsPlease')""")
-                elif not temp_new_id:
-                    break
-            con.commit()
-            cur.close()
-            con.close()
-            time.sleep(86400)
         except Exception as err:
             log(f"ERROR {Exception} and {err}", "error")
             time.sleep(100)
@@ -384,8 +311,6 @@ def checkTime():
 
 thread1 = threading.Thread(target=check)
 thread1.start()
-thread2 = threading.Thread(target=getSchedule)
-thread2.start()
 thread3 = threading.Thread(target=checkTime)
 thread3.start()
 
