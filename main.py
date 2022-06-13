@@ -291,14 +291,13 @@ def checkTime():
                     if relese:
                         if relese[3]:
                             log(f"send info message timer {relese[0]}")
-                            timer = datetime.fromtimestamp(i["updated"]) - datetime.strptime(relese[3],
-                                                                                             '%Y-%m-%d %H:%M:%S.%f')
+                            timer = datetime.fromtimestamp(i["updated"]) - datetime.strptime(relese[3], '%Y-%m-%d %H:%M:%S.%f')
                             days = timer.days
                             _time = convert_to_preferred_format(timer.seconds)
                             if days >= 0:
-                                # 734264203 relese[0]
-                                bot.send_message(chat_id=relese[0],
-                                                 text=f"🕘Серия вышла за:🕘\n{days} дней и {_time}\n\n#Time")
+                                # 734264203 relese[0] день дня дня дня дней
+                                daysstr = ('день' if days < 2 else ('дня' if days > 1 and days < 5 else 'дней'))
+                                bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
                 cur.execute(f'UPDATE lastTimeUpdates SET timestamp = {last_up}')
                 con.commit()
                 cur.close()

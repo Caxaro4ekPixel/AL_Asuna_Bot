@@ -3,4 +3,4 @@ db.sqbpro
 utils.py
 .idea
 /logging file.log
-db.db
+db.db-journal
