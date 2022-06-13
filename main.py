@@ -10,7 +10,7 @@ from dateutil.parser import parse
 import calendar
 import io
 from telegram import ParseMode
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import re
 
@@ -99,6 +99,19 @@ def set_raw(message):
             log(f'error set raw {message}', 'error')
     else:
         bot.send_message(message.chat.id, 'Не ТроЖ бота в лс)')
+
+
+@bot.message_handler(commands=['result'])
+def result(message):
+    con = sqlite3.connect('db.db')
+    cur = con.cursor()
+    cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
+    res = cur.fetchall()
+    mes = "--------\n"
+    for i in res:
+        mes += f'{i[2]}\n<b>{i[3]}</b>'
+        mes += '\n--------\n'
+    bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -295,10 +308,16 @@ def checkTime():
                                                                                              '%Y-%m-%d %H:%M:%S.%f')
                             days = timer.days
                             _time = convert_to_preferred_format(timer.seconds)
+                            daysstr = ('день' if days < 2 else ('дня' if days > 1 and days < 5 else 'дней'))
                             if days >= 0:
                                 # 734264203 relese[0]
-                                bot.send_message(chat_id=relese[0],
-                                                 text=f"🕘Серия вышла за:🕘\n{days} дней и {_time}\n\n#Time")
+                                bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
+                                cur.execute(f'''select * from results where chat = {relese[0]}''')
+                                temp = cur.fetchone()
+                                if temp:
+                                    cur.execute(f'''update results set 'time' = "{days} {daysstr} и {_time}", 'last_up' = {last_up} where 'chat' = {relese[0]}''')
+                                else:
+                                    cur.execute(f'''insert into results ('chat', 'relese', 'time', 'last_up') values ({relese[0]}, "{relese[5]}", "{days} {daysstr} и {_time}", {i["updated"]})''')
                 cur.execute(f'UPDATE lastTimeUpdates SET timestamp = {last_up}')
                 con.commit()
                 cur.close()
@@ -309,10 +328,10 @@ def checkTime():
             time.sleep(100)
 
 
-thread1 = threading.Thread(target=check)
-thread1.start()
-thread3 = threading.Thread(target=checkTime)
-thread3.start()
+# thread1 = threading.Thread(target=check)
+# thread1.start()
+# thread3 = threading.Thread(target=checkTime)
+# thread3.start()
 
 if __name__ == '__main__':
     while True:
