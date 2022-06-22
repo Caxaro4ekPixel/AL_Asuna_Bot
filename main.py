@@ -24,7 +24,7 @@ def log(mess, log_type='info'):
         logging.error(mess)
 
 
-bot = telebot.TeleBot("2066033718:AAGPTwfBbkCBAl5ZDdXDC_yDYnqa9h8AtT4", parse_mode=None)
+bot = telebot.TeleBot("5232964507:AAFANCtpnMIHK0Us73C8idPYDmpQcfnZ88M", parse_mode=None)
 
 
 @bot.message_handler(commands=['start'])
@@ -102,6 +102,26 @@ def set_raw(message):
         bot.send_message(message.chat.id, 'Не ТроЖ бота в лс)')
 
 
+def name_week_day(week_day):
+    day = ""
+    if week_day == 0:
+        day = "Понедельник"
+    elif week_day == 1:
+        day = "Вторник"
+    elif week_day == 2:
+        day = "Среда"
+    elif week_day == 3:
+        day = "Четверг"
+    elif week_day == 4:
+        day = "Пятница"
+    elif week_day == 5:
+        day = "Суббота"
+    elif week_day == 6:
+        day = "Воскресенье"
+
+    return day
+
+
 @bot.message_handler(commands=['result'])
 def result(message):
     log(f'get results {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
@@ -109,10 +129,29 @@ def result(message):
     cur = con.cursor()
     cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
     res = cur.fetchall()
-    mes = "--------\n"
+    mess_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
+    bot.send_message(message.chat.id, "📈Ожидайте! формирую отчёт📈")
     for i in res:
-        mes += f'{i[2]}\n<b>{i[3]}</b>'
-        mes += '\n--------\n'
+        response = requests.get(f"https://api.anilibria.tv/v2/getTitle?id={i[0]}").json()
+        voice = ', '.join(w for w in response['team']['voice'])
+        timing = ', '.join(w for w in response['team']['timing'])
+        editing = ', '.join(w for w in response['team']['editing'])
+        decor = ', '.join(w for w in response['team']['decor'])
+        translator = ', '.join(w for w in response['team']['translator'])
+        last_ser = response['player']['series']['last']
+        all_ser = (response['type']['series'] if response['type']['series'] is not None else '?')
+
+        mess_dict[response['season']['week_day']].append(f"{response['names']['ru']} ({voice} / {timing} / {translator} / {editing} / {decor})\n({last_ser}/{all_ser}) - <b>{i[3]}</b>{' РЕЛИЗ ЗАВЕРШЁН!' if last_ser == all_ser else ''}\n")
+    mes = ''
+    for i in mess_dict:
+
+        mes += f'<u>{name_week_day(i)}</u>\n\n'
+
+        for s in mess_dict[i]:
+            mes += s
+
+        mes += '\n-----------------\n'
+
     bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
@@ -310,7 +349,7 @@ def checkTime():
                                 if temp:
                                     cur.execute(f'''update results set 'time' = "{days} {daysstr} и {_time}", 'last_up' = {last_up} where 'chat' = {relese[0]}''')
                                 else:
-                                    cur.execute(f'''insert into results ('chat', 'relese', 'time', 'last_up') values ({relese[0]}, "{relese[5]}", "{days} {daysstr} и {_time}", {i["updated"]})''')
+                                    cur.execute(f'''insert into results ('id', 'chat', 'relese', 'time', 'last_up') values ({i["id"]} ,{relese[0]}, "{relese[5]}", "{days} {daysstr} и {_time}", {i["updated"]})''')
                 cur.execute(f'UPDATE lastTimeUpdates SET timestamp = {last_up}')
                 con.commit()
                 cur.close()
@@ -321,10 +360,10 @@ def checkTime():
             time.sleep(100)
 
 
-thread1 = threading.Thread(target=check)
-thread1.start()
-thread3 = threading.Thread(target=checkTime)
-thread3.start()
+# thread1 = threading.Thread(target=check)
+# thread1.start()
+# thread3 = threading.Thread(target=checkTime)
+# thread3.start()
 
 if __name__ == '__main__':
     while True:
