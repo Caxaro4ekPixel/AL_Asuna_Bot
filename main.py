@@ -50,6 +50,7 @@ def start(message):
 @bot.message_handler(commands=['update'])
 def update(message):
     log(f"select update {message.chat.id, message.chat.username, message.text}")
+    print(message)
     if message.chat.type == 'group' or message.chat.type == 'supergroup':
         con = sqlite3.connect('db.db')
         cur = con.cursor()
@@ -103,6 +104,7 @@ def set_raw(message):
 
 @bot.message_handler(commands=['result'])
 def result(message):
+    log(f'get results {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
     con = sqlite3.connect('db.db')
     cur = con.cursor()
     cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
@@ -141,19 +143,6 @@ def query_handler(call):
                               text='Тогда перепроверь id и попробуй снова /start id')
 
 
-@bot.message_handler(content_types='text')
-def text(message):
-    if message.chat.type == 'group' or message.chat.type == 'supergroup':
-        if 'асуна' in message.text.lower() or 'asuna' in message.text.lower() and "спасибо" in message.text.lower():
-            bot.send_message(message.chat.id, "Пожалуйста, всегда рада помочь!")
-        elif 'асуна' in message.text.lower() or 'asuna' in message.text.lower() and "кофе" in message.text.lower():
-            bot.send_message(message.chat.id, "Я тебе не горничная!")
-            bot.send_sticker(message.chat.id,
-                             'CAACAgQAAxkBAAFPP7pim7LqMa865C-nWxrS6EPzEmDa8AACLQADwl2NAckw7Rc6zQABnCQE')
-    else:
-        bot.send_message(message.chat.id, 'Не ТроЖ бота в лс)')
-
-
 def normolize_text(s):
     a = []
     for i in re.sub(r'\(.*\)', '', re.sub(r'\[[^\]]+\]', '', s)).split(' '):
@@ -176,10 +165,12 @@ def similarity(s1, s2):
 
 def check():
     while True:
+        con = sqlite3.connect('db.db')
+        cur = con.cursor()
         try:
             log(f"start check new sub")
-            con = sqlite3.connect('db.db')
-            cur = con.cursor()
+
+
             cur.execute('''SELECT * FROM lastReles''')
 
             response = requests.get(f'https://nyaa.si/?page=rss&f=2&c=1_2')
@@ -243,6 +234,8 @@ def check():
                                 quality = '1080p'
                                 if '480p' in j['title']:
                                     quality = '480p'
+                                if '540p' in j['title']:
+                                    quality = '540p'
                                 elif '720p' in j['title']:
                                     quality = '720p'
                                 elif '1080p' in j['title']:
@@ -269,14 +262,14 @@ def check():
                                 pass
                             bot.send_media_group(f[0], i[1])
                             cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id={f[0]} and id_relese={f[2]}''')
-
-            con.commit()
-            cur.close()
-            con.close()
             time.sleep(120)
         except Exception as err:
             log(f"ERROR {Exception} and {err}", "error")
             time.sleep(100)
+        finally:
+            con.commit()
+            cur.close()
+            con.close()
 
 
 def convert_to_preferred_format(sec):
@@ -308,7 +301,7 @@ def checkTime():
                                                                                              '%Y-%m-%d %H:%M:%S.%f')
                             days = timer.days
                             _time = convert_to_preferred_format(timer.seconds)
-                            daysstr = ('день' if days < 2 else ('дня' if days > 1 and days < 5 else 'дней'))
+                            daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
                             if days >= 0:
                                 # 734264203 relese[0]
                                 bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
@@ -328,10 +321,10 @@ def checkTime():
             time.sleep(100)
 
 
-# thread1 = threading.Thread(target=check)
-# thread1.start()
-# thread3 = threading.Thread(target=checkTime)
-# thread3.start()
+thread1 = threading.Thread(target=check)
+thread1.start()
+thread3 = threading.Thread(target=checkTime)
+thread3.start()
 
 if __name__ == '__main__':
     while True:
