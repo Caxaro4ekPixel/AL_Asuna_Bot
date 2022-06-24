@@ -13,6 +13,7 @@ from telegram import ParseMode
 from datetime import datetime, timedelta
 import logging
 import re
+import os
 
 
 def log(mess, log_type='info'):
@@ -24,12 +25,13 @@ def log(mess, log_type='info'):
         logging.error(mess)
 
 
-bot = telebot.TeleBot("5232964507:AAFANCtpnMIHK0Us73C8idPYDmpQcfnZ88M", parse_mode=None)
+bot = telebot.TeleBot("2066033718:AAGPTwfBbkCBAl5ZDdXDC_yDYnqa9h8AtT4", parse_mode=None)
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
     log(f"send start {message.chat.id, message.chat.username, message.text}")
+    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
     # if message.chat.id == 734264203:
     #     a = bot.send_message(734264203, "asdasdadsasdads")
     #     bot.pin_chat_message(chat_id=message.chat.id, message_id=a.message_id)
@@ -44,13 +46,13 @@ def start(message):
             bot.send_message(message.chat.id, f'Релиз: {response["names"]["ru"]}?\nID: {relese_id}',
                              reply_markup=types.InlineKeyboardMarkup(bottons))
     else:
-        bot.send_message(message.chat.id, 'Не ТроЖ бота в лс)')
+        pass
 
 
 @bot.message_handler(commands=['update'])
 def update(message):
     log(f"select update {message.chat.id, message.chat.username, message.text}")
-    print(message)
+    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == 'group' or message.chat.type == 'supergroup':
         con = sqlite3.connect('db.db')
         cur = con.cursor()
@@ -75,7 +77,8 @@ def update(message):
 @bot.message_handler(commands=['stop'])
 def stop(message):
     log(f'send stop {message.chat.id, message.chat.username, message.text}')
-    if message.chat.id in [253296124, 734264203, 1625017611]:
+    bot.send_message(734264203, "АЛЯЯЯРМ!")
+    if message.chat.id in [253296124, 734264203, 1625017611, 470092294]:
         bot.send_message(message.chat.id, "Bot is deactivated")
         bot.stop_bot()
 
@@ -83,6 +86,7 @@ def stop(message):
 @bot.message_handler(commands=['raw'])
 def set_raw(message):
     log(f'set raw {message}', 'info')
+    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == 'group' or message.chat.type == 'supergroup':
         try:
             con = sqlite3.connect('db.db')
@@ -125,34 +129,39 @@ def name_week_day(week_day):
 @bot.message_handler(commands=['result'])
 def result(message):
     log(f'get results {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
-    con = sqlite3.connect('db.db')
-    cur = con.cursor()
-    cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
-    res = cur.fetchall()
-    mess_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
+    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
     bot.send_message(message.chat.id, "📈Ожидайте! формирую отчёт📈")
-    for i in res:
-        response = requests.get(f"https://api.anilibria.tv/v2/getTitle?id={i[0]}").json()
-        voice = ', '.join(w for w in response['team']['voice'])
-        timing = ', '.join(w for w in response['team']['timing'])
-        editing = ', '.join(w for w in response['team']['editing'])
-        decor = ', '.join(w for w in response['team']['decor'])
-        translator = ', '.join(w for w in response['team']['translator'])
-        last_ser = response['player']['series']['last']
-        all_ser = (response['type']['series'] if response['type']['series'] is not None else '?')
+    try:
+        con = sqlite3.connect('db.db')
+        cur = con.cursor()
+        cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
+        res = cur.fetchall()
+        mess_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
+        for i in res:
+            response = requests.get(f"https://api.anilibria.tv/v2/getTitle?id={i[0]}").json()
+            voice = ', '.join(w for w in response['team']['voice'])
+            timing = ', '.join(w for w in response['team']['timing'])
+            editing = ', '.join(w for w in response['team']['editing'])
+            decor = ', '.join(w for w in response['team']['decor'])
+            translator = ', '.join(w for w in response['team']['translator'])
+            last_ser = response['player']['series']['last']
+            all_ser = (response['type']['series'] if response['type']['series'] is not None else '?')
 
-        mess_dict[response['season']['week_day']].append(f"{response['names']['ru']} ({voice} / {timing} / {translator} / {editing} / {decor})\n({last_ser}/{all_ser}) - <b>{i[3]}</b>{' РЕЛИЗ ЗАВЕРШЁН!' if last_ser == all_ser else ''}\n")
-    mes = ''
-    for i in mess_dict:
+            mess_dict[response['season']['week_day']].append(f"{response['names']['ru']} ({voice} / {timing} / {translator} / {editing} / {decor})\n({last_ser}/{all_ser}) - <b>{i[3]}</b>{' РЕЛИЗ ЗАВЕРШЁН!' if last_ser == all_ser else ''}\n")
+        mes = ''
+        for i in mess_dict:
 
-        mes += f'<u>{name_week_day(i)}</u>\n\n'
+            mes += f'<u>{name_week_day(i)}</u>\n\n'
 
-        for s in mess_dict[i]:
-            mes += s
+            for s in mess_dict[i]:
+                mes += s
 
-        mes += '\n-----------------\n'
+            mes += '\n-----------------\n'
 
-    bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    except Exception as err:
+        log(f"ERROR {Exception} and {err}", "error")
+        bot.send_message(message.chat.id, "Произошла ошибка, отчёт не может быть сформирован")
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -208,8 +217,6 @@ def check():
         cur = con.cursor()
         try:
             log(f"start check new sub")
-
-
             cur.execute('''SELECT * FROM lastReles''')
 
             response = requests.get(f'https://nyaa.si/?page=rss&f=2&c=1_2')
@@ -360,10 +367,10 @@ def checkTime():
             time.sleep(100)
 
 
-# thread1 = threading.Thread(target=check)
-# thread1.start()
-# thread3 = threading.Thread(target=checkTime)
-# thread3.start()
+thread1 = threading.Thread(target=check)
+thread1.start()
+thread3 = threading.Thread(target=checkTime)
+thread3.start()
 
 if __name__ == '__main__':
     while True:
@@ -372,6 +379,6 @@ if __name__ == '__main__':
         except Exception as err:
             if err.args[0] == 'cannot join current thread':
                 log(f"ERROR {Exception} and {err}", "error")
-                break
+                os.abort()
             else:
                 time.sleep(200)
