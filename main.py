@@ -25,7 +25,7 @@ def log(mess, log_type='info'):
         logging.error(mess)
 
 
-bot = telebot.TeleBot("2066033718:AAGPTwfBbkCBAl5ZDdXDC_yDYnqa9h8AtT4", parse_mode=None)
+bot = telebot.TeleBot("5232964507:AAFANCtpnMIHK0Us73C8idPYDmpQcfnZ88M", parse_mode=None)
 
 
 @bot.message_handler(commands=['start'])
@@ -350,11 +350,11 @@ def checkTime():
                             daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
                             if days >= 0:
                                 # 734264203 relese[0]
-                                bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
+                                bot.send_message(chat_id=734264203, text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
                                 cur.execute(f'''select * from results where chat = {relese[0]}''')
                                 temp = cur.fetchone()
                                 if temp:
-                                    cur.execute(f'''update results set 'time' = "{days} {daysstr} и {_time}", 'last_up' = {last_up} where 'chat' = {relese[0]}''')
+                                    cur.execute(f'''update results set time = "{days} {daysstr} и {_time}", last_up = {last_up} where id = {temp[0]}''')
                                 else:
                                     cur.execute(f'''insert into results ('id', 'chat', 'relese', 'time', 'last_up') values ({i["id"]} ,{relese[0]}, "{relese[5]}", "{days} {daysstr} и {_time}", {i["updated"]})''')
                 cur.execute(f'UPDATE lastTimeUpdates SET timestamp = {last_up}')
