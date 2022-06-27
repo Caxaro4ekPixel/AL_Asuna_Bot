@@ -3,5 +3,6 @@ db.sqbpro
 .idea
 /logging file.log
 db.db-journal
+db.db
 .env
 ./.env
