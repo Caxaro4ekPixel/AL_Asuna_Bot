@@ -31,7 +31,7 @@ bot = telebot.TeleBot("5232964507:AAFANCtpnMIHK0Us73C8idPYDmpQcfnZ88M", parse_mo
 @bot.message_handler(commands=['start'])
 def start(message):
     log(f"send start {message.chat.id, message.chat.username, message.text}")
-    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
+    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     # if message.chat.id == 734264203:
     #     a = bot.send_message(734264203, "asdasdadsasdads")
     #     bot.pin_chat_message(chat_id=message.chat.id, message_id=a.message_id)
@@ -52,7 +52,7 @@ def start(message):
 @bot.message_handler(commands=['update'])
 def update(message):
     log(f"select update {message.chat.id, message.chat.username, message.text}")
-    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
+    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == 'group' or message.chat.type == 'supergroup':
         con = sqlite3.connect('db.db')
         cur = con.cursor()
@@ -86,7 +86,7 @@ def stop(message):
 @bot.message_handler(commands=['raw'])
 def set_raw(message):
     log(f'set raw {message}', 'info')
-    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
+    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == 'group' or message.chat.type == 'supergroup':
         try:
             con = sqlite3.connect('db.db')
@@ -126,39 +126,40 @@ def name_week_day(week_day):
     return day
 
 
-@bot.message_handler(commands=['result'])
+@bot.message_handler(commands=['report'])
 def result(message):
-    log(f'get results {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
-    bot.send_message(chat_id=734264203, text=(message.chat.username + " - " + message.text + " - " + message.chat.type))
+    log(f'get report {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
+    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     bot.send_message(message.chat.id, "📈Ожидайте! формирую отчёт📈")
     try:
         con = sqlite3.connect('db.db')
         cur = con.cursor()
-        cur.execute(f'''select * from results where last_up > {time.mktime((datetime.now() - timedelta(days=7)).timetuple())}''')
-        res = cur.fetchall()
+        response = requests.get(f"https://api.anilibria.tv/v2/getSchedule").json()
         mess_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
-        for i in res:
-            response = requests.get(f"https://api.anilibria.tv/v2/getTitle?id={i[0]}").json()
-            voice = ', '.join(w for w in response['team']['voice'])
-            timing = ', '.join(w for w in response['team']['timing'])
-            editing = ', '.join(w for w in response['team']['editing'])
-            decor = ', '.join(w for w in response['team']['decor'])
-            translator = ', '.join(w for w in response['team']['translator'])
-            last_ser = response['player']['series']['last']
-            all_ser = (response['type']['series'] if response['type']['series'] is not None else '?')
+        for week in response:
+            for relese in week['list']:
+                cur.execute(f'''select * from results where id={relese["id"]}''')
+                res = cur.fetchone()
+                time_up = datetime.fromtimestamp(relese['updated'])
+                if res:
+                    time_up = res[3] + f" (серия вышла {time_up})"
+                voice = ', '.join(w for w in relese['team']['voice'])
+                timing = ', '.join(w for w in relese['team']['timing'])
+                editing = ', '.join(w for w in relese['team']['editing'])
+                decor = ', '.join(w for w in relese['team']['decor'])
+                translator = ', '.join(w for w in relese['team']['translator'])
+                last_ser = relese['player']['series']['last']
+                all_ser = (relese['type']['series'] if relese['type']['series'] is not None else '?')
 
-            mess_dict[response['season']['week_day']].append(f"{response['names']['ru']} ({voice} / {timing} / {translator} / {editing} / {decor})\n({last_ser}/{all_ser}) - <b>{i[3]}</b>{' РЕЛИЗ ЗАВЕРШЁН!' if last_ser == all_ser else ''}\n")
-        mes = ''
+                mess_dict[relese['season']['week_day']].append(f"""<a href='https://www.anilibria.tv/release/{relese['code']}.html'>{relese['names']['ru']}</a> - ({voice} / {timing} / {translator} / {editing} / {decor})\n({last_ser}/{all_ser}) - <b>{time_up}</b>{' <u>РЕЛИЗ ЗАВЕРШЁН!</u>' if last_ser == all_ser else ''}\n""")
+
         for i in mess_dict:
-
+            mes = ''
             mes += f'<u>{name_week_day(i)}</u>\n\n'
-
             for s in mess_dict[i]:
                 mes += s
-
             mes += '\n-----------------\n'
-
-        bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+            bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     except Exception as err:
         log(f"ERROR {Exception} and {err}", "error")
         bot.send_message(message.chat.id, "Произошла ошибка, отчёт не может быть сформирован")
@@ -267,8 +268,8 @@ def check():
                         log(f"new sub {alerts_list[i]}")
 
                         temp = str(f[5]) + ' / ' + str(f[6]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
-                            4] + '.html">[❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
-                            f[2]) + '">[🖤]</a>'
+                            4] + '.html">Сайт</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
+                            f[2]) + '">Админка</a>'
 
                         temp = temp + "\n\n"
                         for j in alerts_list[i]:
@@ -367,10 +368,10 @@ def checkTime():
             time.sleep(100)
 
 
-thread1 = threading.Thread(target=check)
-thread1.start()
-thread3 = threading.Thread(target=checkTime)
-thread3.start()
+# thread1 = threading.Thread(target=check)
+# thread1.start()
+# thread3 = threading.Thread(target=checkTime)
+# thread3.start()
 
 if __name__ == '__main__':
     while True:
