@@ -53,7 +53,6 @@ def check(bot, con):
                     })
                 else:
                     break
-
             alerts = []
             cur.execute('''SELECT * FROM chats''')
             chats = cur.fetchall()
@@ -65,8 +64,8 @@ def check(bot, con):
                         log(f"new sub {alerts_list[i]}")
 
                         temp = str(f[5]) + ' / ' + str(f[6]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
-                            4] + '.html">Сайт</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
-                            f[2]) + '">Админка</a>'
+                            4] + '.html">[❤️Сайт❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
+                            f[2]) + '">[🖤Админка🖤]</a>'
 
                         temp = temp + "\n\n"
                         for j in alerts_list[i]:
@@ -96,20 +95,28 @@ def check(bot, con):
                 for f in chats:
                     if i[2] == f[2]:
                         if i[1]:
+                            bot.send_message(734264203, i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+                            cur.execute(f'''select * from results where id={f[2]}''')
+                            report = cur.fetchone()
+                            check_al = True
+
+                            if report:
+                                if int(report[3]) == -1:
+                                    check_al = False
+
                             log(f"send info message in chat {f[0]} relese {f[2]}")
                             mess = bot.send_message(f[0], i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-                            bot.send_message(734264203, i[0], parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-
                             try:
                                 bot.pin_chat_message(chat_id=f[0], message_id=mess.message_id)
                             except:
                                 pass
                             bot.send_media_group(f[0], i[1])
-                            cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id_relese={f[2]}''')
-                            cur.execute(f'''update results set time=-1 where id={f[2]}''')
+                            if check_al:
+                                cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id_relese={f[2]}''')
+                                cur.execute(f'''update results set time=-1 where id={f[2]}''')
             time.sleep(120)
         except Exception as err:
-            log(f"ERROR {Exception} and {err}", "error")
+            log(f"ERROR {err}", "error")
             time.sleep(100)
         finally:
             con.commit()
