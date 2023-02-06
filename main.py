@@ -7,7 +7,7 @@ import threading
 from telegram import ParseMode
 from datetime import datetime, timedelta
 import os
-from utils import name_month, name_week_day, log, convert_to_preferred_format
+from utils import name_month, name_week_day, log, convert_to_preferred_format, ass_to_srt
 from check_time import checkTime
 from reader_RSS import check
 from decouple import config
@@ -186,6 +186,25 @@ def query_handler(call):
                               text='Тогда перепроверь id и попробуй снова /start id')
 
 
+@bot.message_handler(commands=['srt'])
+def convert_sub(message: types.Message):
+    try:
+        message.reply_to_message.document.file_id
+    except:
+        bot.send_message(message.chat.id, "команда работает реплаем на сообщение с сабом")
+        return
+    
+    file_info = bot.get_file(message.reply_to_message.document.file_id)
+    file_name = message.reply_to_message.document.file_name
+    
+    if file_name.endswith('.ass'):
+        file_in_bytes = bot.download_file(file_info.file_path)
+        srt_file = ass_to_srt(file_in_bytes, file_name)
+        bot.send_document(message.chat.id, srt_file)
+    else:
+        bot.send_message(message.chat.id, "неизвестный формат")
+        
+        
 thread1 = threading.Thread(target=check, args=[bot, con])
 thread1.start()
 thread3 = threading.Thread(target=checkTime, args=[bot, con])
