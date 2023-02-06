@@ -17,7 +17,7 @@ def check(bot, con):
             log(f"start check new sub")
             cur.execute('''SELECT * FROM lastReles''')
 
-            response = requests.get(f'https://nyaa.si/?page=rss&f=2&c=1_2')
+            response = requests.get(f'https://nyaa.si/?page=rss&f=0&c=1_2')
             dict_list = xmltodict.parse(response.text)['rss']['channel']['item']
 
             last_time = cur.fetchone()[1]
@@ -64,7 +64,7 @@ def check(bot, con):
                         log(f"new sub {alerts_list[i]}")
 
                         temp = str(f[5]) + ' / ' + str(f[6]) + '\n\n<a href="https://www.anilibria.tv/release/' + f[
-                            4] + '.html">[❤️Сайт❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/release-resources/' + str(
+                            4] + '.html">[❤️Сайт❤️]</a> ... <a href="https://backoffice.anilibria.top/resources/anime__releases/' + str(
                             f[2]) + '">[🖤Админка🖤]</a>'
 
                         temp = temp + "\n\n"
@@ -90,7 +90,7 @@ def check(bot, con):
                                     j['size']) + ']</a>◥◣\n'
                         temp = temp + "\n\n#NewSub"
                         alerts.append([temp, file_list, f[2]])
-
+            print()
             for i in alerts:
                 for f in chats:
                     if i[2] == f[2]:
@@ -114,10 +114,10 @@ def check(bot, con):
                             if check_al:
                                 cur.execute(f'''update chats set time_alerts='{datetime.now()}' where id_relese={f[2]}''')
                                 cur.execute(f'''update results set time=-1 where id={f[2]}''')
-            time.sleep(120)
         except Exception as err:
             log(f"ERROR {err}", "error")
-            time.sleep(100)
+            time.sleep(300)
         finally:
             con.commit()
             cur.close()
+            time.sleep(300)

@@ -7,11 +7,13 @@ import time
 def checkTime(bot, con):
     while True:
         cur = con.cursor()
+        print("maybe work")
         try:
             cur.execute('SELECT * FROM lastTimeUpdates')
             _time = cur.fetchone()
             print(_time, datetime.now())
-            response = requests.get(f'https://api.anilibria.tv/v2/getUpdates?since={_time[1]}&limit=100').json()
+            response = requests.get(f'http://api.anilibria.tv/v2/getUpdates?since={_time[1]}&limit=100', verify=False).json()
+            print(response)
             if 'error' not in response:
                 if response:
                     last_up = response[0]["updated"] + 1
@@ -39,16 +41,18 @@ def checkTime(bot, con):
 
                                     last_ser = i['player']['series']['last']
                                     all_ser = (i['type']['series'] if i['type']['series'] is not None else '?')
-                                    print()
                                     if last_ser == all_ser:
                                         cur.execute(f'''delete from chats where id_relese={int(i["id"])}''')
                                         bot.send_message(chat_id=relese[0], text=f"Релиз завершён! Всем спасибо за работу! Этот чат более не активен.")
             else:
+                print("Error")
                 log(f"ERROR {response}", "error")
-            time.sleep(50)
         except Exception as err:
+            print("Error")
             log(f"ERROR {Exception} and {err}", "error")
-            time.sleep(100)
+            time.sleep(420)
         finally:
             con.commit()
             cur.close()
+            time.sleep(420)
+            print("Finally")
