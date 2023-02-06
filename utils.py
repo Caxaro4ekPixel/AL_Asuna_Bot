@@ -70,9 +70,9 @@ def ass_to_srt(file_in_bytes, file_name):
         
         # Highlight signs
         if not effect: 
-            text = ','.join(elements[9:]).strip().replace("\\N", "")
+            text = ','.join(elements[9:]).strip().replace("\\N", " ")
         else:
-            text = "[" + ','.join(elements[9:]).strip().replace("\\N", "") + "]"
+            text = "[" + ','.join(elements[9:]).strip().replace("\\N", " ") + "]"
         
         # remove "{ }" symbols and everything between them
         text = re.sub(r'{.*?}', '', text)
