@@ -223,7 +223,8 @@ def query_handler(call):
 def convert_sub(message: types.Message):
     try:
         message.reply_to_message.document.file_id
-    except:
+    except Exception as err:
+        log(f"ERROR {err}", "error")
         bot.send_message(message.chat.id, "команда работает реплаем на сообщение с сабом")
         return
 
@@ -239,8 +240,8 @@ def convert_sub(message: types.Message):
 
 
 def schedules():
-    schedule.every(5).minutes.do(lambda: check(bot, con))
-    schedule.every(5).minutes.do(lambda: checkTime(bot, con))
+    schedule.every(3).minutes.do(lambda: check(bot, con))
+    schedule.every(3).minutes.do(lambda: checkTime(bot, con))
     schedule.every().sunday.at("14:00").do(lambda: check_status_relise_in_chats(bot, con))
     while True:
         schedule.run_pending()
