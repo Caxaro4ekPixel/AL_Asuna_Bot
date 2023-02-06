@@ -102,4 +102,3 @@ def ass_to_srt(file_in_bytes, file_name):
     file.name = file_name.replace('.ass', '.srt')
 
     return file
-        
