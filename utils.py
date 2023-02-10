@@ -102,3 +102,26 @@ def ass_to_srt(file_in_bytes, file_name):
     file.name = file_name.replace('.ass', '.srt')
 
     return file
+
+
+def send_res_rel_time(timer, bot, relese, cur, response, con):
+    days = timer.days
+    _time = convert_to_preferred_format(timer.seconds)
+    daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
+    if days >= 0:
+        # 734264203 relese[0]
+        bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
+        cur.execute(f'''select * from results where chat = {int(relese[0])}''')
+        temp = cur.fetchone()
+        if temp:
+            cur.execute(f'''update results set time = "{(timer.days * 86400) + timer.seconds}", last_up = {response["updated"]} where id = {temp[0]}''')
+        else:
+            cur.execute(
+                f'''insert into results ('id', 'chat', 'relese', 'time', 'last_up') values ({response["id"]} ,{relese[0]}, "{relese[5]}", "{(timer.days * 86400) + timer.seconds}", {response["updated"]})''')
+
+        last_ser = response['player']['series']['last']
+        all_ser = (response['type']['series'] if response['type']['series'] is not None else '?')
+        if last_ser == all_ser:
+            cur.execute(f'''delete from chats where id_relese={int(response["id"])}''')
+            bot.send_message(chat_id=relese[0], text=f"Релиз завершён! Всем спасибо за работу! Этот чат более не активен.")
+    con.commit()

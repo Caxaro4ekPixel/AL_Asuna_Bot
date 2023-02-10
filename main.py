@@ -7,7 +7,7 @@ import threading
 from telegram import ParseMode
 from datetime import datetime, timedelta
 import os
-from utils import name_month, name_week_day, log, convert_to_preferred_format, ass_to_srt
+from utils import name_month, name_week_day, log, convert_to_preferred_format, ass_to_srt, send_res_rel_time
 from check_time import checkTime
 from reader_RSS import check
 from check_status_relise import check_status_relise_in_chats
@@ -158,16 +158,18 @@ def times(message):
     relese = cur.fetchone()
     response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese[2]}').json()
     if relese:
+        timer = convert_to_preferred_format(0)
         if relese[3]:
             log(f"send info message timer {relese[0]}")
             timer = datetime.fromtimestamp(response["updated"]) - datetime.strptime(relese[3], '%Y-%m-%d %H:%M:%S.%f')
-            days = timer.days
-            _time = convert_to_preferred_format(timer.seconds)
-            daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
-            if days >= 0:
-                print(relese)
-                bot.send_message(chat_id=message.chat.id,
-                                 text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
+        else:
+            if message.reply_to_message is None:
+                bot.reply_to(message=message, text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
+            else:
+                timer = datetime.fromtimestamp(response["updated"]) - datetime.fromtimestamp(message.reply_to_message.date)
+        send_res_rel_time(timer, bot, relese, cur, response, con)
+
+
 
 
 @bot.message_handler(commands=['editstatus'])
