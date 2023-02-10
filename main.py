@@ -77,8 +77,7 @@ def set_raw(message):
 @bot.message_handler(commands=['report'])
 def result(message):
     log(f'get report {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
-    bot.send_message(chat_id=734264203,
-                     text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
+    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == "private":
         bot.send_message(message.chat.id, "📈Ожидайте! формирую отчёт📈")
         cur = con.cursor()
@@ -91,7 +90,8 @@ def result(message):
                         cur.execute(f'''select * from results where id={relese["id"]}''')
                         res = cur.fetchone()
                         a = datetime.fromtimestamp(relese['updated'])
-                        time_up = f"Последняя серия вышла: {'в срок' if week['day'] >= a.weekday() else 'позже чем в расписании'} ({a.day} {name_month(a.month)} {a.hour if a.hour > 9 else f'0{a.hour}'}:{a.minute if a.minute > 9 else f'0{a.minute}'}:{a.second if a.second > 9 else f'0{a.second}'})"
+
+                        time_up = f"Последняя серия вышла: {'по расписанию' if week['day'] == a.weekday() else 'не по расписанию'} ({a.day} {name_month(a.month)} {a.hour if a.hour > 9 else f'0{a.hour}'}:{a.minute if a.minute > 9 else f'0{a.minute}'}:{a.second if a.second > 9 else f'0{a.second}'})"
 
                         em = "🔘"
                         if res:
