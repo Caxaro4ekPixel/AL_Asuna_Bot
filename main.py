@@ -172,13 +172,13 @@ def times(message):
 
 @bot.message_handler(commands=['editstatus'])
 def editstatus(message):
-    bottons = [
+    buttons = [
         [types.InlineKeyboardButton(text="Перевод/редактура", callback_data=f'translation.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Озвучка", callback_data=f'voiceover.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Тайминг/фиксы", callback_data=f'timing.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Сборка", callback_data=f'assembling.{message.chat.id}')]
     ]
-    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(bottons))
+    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(buttons))
 
 
 @bot.message_handler(commands=['subready'])
