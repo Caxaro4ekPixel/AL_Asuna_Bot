@@ -41,7 +41,7 @@ def start(message):
 
 @bot.message_handler(commands=['id'])
 def id(message):
-    print(message.chat.id)
+    print(message)
 
 
 @bot.message_handler(commands=['stop'])
@@ -170,8 +170,8 @@ def times(message):
                                  text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
 
 
-@bot.message_handler(commands=['edetstatus'])
-def edetstatus(message):
+@bot.message_handler(commands=['editstatus'])
+def editstatus(message):
     bottons = [
         [types.InlineKeyboardButton(text="Перевод/редактура", callback_data=f'translation.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Озвучка", callback_data=f'voiceover.{message.chat.id}')],
@@ -179,6 +179,25 @@ def edetstatus(message):
         [types.InlineKeyboardButton(text="Сборка", callback_data=f'assembling.{message.chat.id}')]
     ]
     bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(bottons))
+
+
+@bot.message_handler(commands=['subready'])
+def sub_is_ready(message):
+    try:
+        cur = con.cursor()
+        time_alert = cur.execute(f"""SELECT time_alerts  from chats c where id={message.chat.id};""").fetchone()
+        if time_alert:
+            time_ready_sub = datetime.now() - datetime.strptime(time_alert[0], "%Y-%m-%d %H:%M:%S.%f")
+        else:
+            if message.reply_to_message is None:
+                bot.reply_to(message=message, text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
+            else:
+                time_ready_sub = datetime.now() - datetime.utcfromtimestamp(message.reply_to_message.date)
+        daysstr = ('день' if 2 > time_ready_sub.days > 0 else ('дня' if 1 < time_ready_sub.days < 5 else 'дней'))
+        time = convert_to_preferred_format(time_ready_sub.seconds)
+        bot.reply_to(message=message, text=f"🖋Саб вышел за: {time_ready_sub.days} {daysstr} и {time}✒️")
+    except Exception as ex:
+        log(ex, "error")
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -203,16 +222,16 @@ def query_handler(call):
                                   text='Тогда перепроверь id и попробуй снова /start id')
         elif "translation" in call.data:
             cur.execute(f'''UPDATE results SET status = "Перевод/редактура" WHERE id={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Перевод/редактура"✅\n(если вы ошиблись пропишите /edetstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Перевод/редактура"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "voiceover" in call.data:
             cur.execute(f'''UPDATE results SET status = "Озвучка" WHERE id={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Озвучка"✅\n(если вы ошиблись пропишите /edetstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Озвучка"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "timing" in call.data:
             cur.execute(f'''UPDATE results SET status = "Тайминг/фиксы" WHERE id={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Тайминг/фиксы"✅\n(если вы ошиблись пропишите /edetstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Тайминг/фиксы"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "assembling" in call.data:
             cur.execute(f'''UPDATE results SET status = "Сборка" WHERE chat={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Сборка"\n(если вы ошиблись пропишите /edetstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Сборка"\n(если вы ошиблись пропишите /editstatus)')
     except Exception as err:
         log(f"ERROR {err}", "error")
     finally:
@@ -225,7 +244,7 @@ def convert_sub(message: types.Message):
         message.reply_to_message.document.file_id
     except Exception as err:
         log(f"ERROR {err}", "error")
-        bot.send_message(message.chat.id, "команда работает реплаем на сообщение с сабом")
+        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом")
         return
 
     file_info = bot.get_file(message.reply_to_message.document.file_id)
@@ -240,8 +259,8 @@ def convert_sub(message: types.Message):
 
 
 def schedules():
-    schedule.every(3).minutes.do(lambda: check(bot, con))
-    schedule.every(3).minutes.do(lambda: checkTime(bot, con))
+    schedule.every(5).minutes.do(lambda: check(bot, con))
+    schedule.every(5).minutes.do(lambda: checkTime(bot, con))
     schedule.every().sunday.at("14:00").do(lambda: check_status_relise_in_chats(bot, con))
     while True:
         schedule.run_pending()
@@ -249,6 +268,7 @@ def schedules():
 
 thread1 = threading.Thread(target=schedules)
 thread1.start()
+
 # thread1 = threading.Thread(target=check, args=[bot, con])
 # thread1.start()
 # thread3 = threading.Thread(target=checkTime, args=[bot, con])
