@@ -259,8 +259,8 @@ def convert_sub(message: types.Message):
 
 
 def schedules():
-    schedule.every(5).minutes.do(lambda: check(bot, con))
-    schedule.every(5).minutes.do(lambda: checkTime(bot, con))
+    schedule.every(3).minutes.do(lambda: check(bot, con))
+    schedule.every(3).minutes.do(lambda: checkTime(bot, con))
     schedule.every().sunday.at("14:00").do(lambda: check_status_relise_in_chats(bot, con))
     while True:
         schedule.run_pending()
