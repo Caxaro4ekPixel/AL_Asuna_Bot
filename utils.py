@@ -55,15 +55,20 @@ def convert_to_preferred_format(sec):
 def parse_text(elements) -> str:
         effect = elements[8]
         text = ''.join(elements[9:]).strip().replace("\\N", " ")
+        
+        if text.startswith('—'):
+            text = text.replace("—", "")
+
         if effect: 
             text = "[" + text + "]"
+        
         else:
             tags = ("\\fn", "\\shad", "\\bord", "\\fade")
             for tag in tags:
                 if tag in text:
                     text = "[" + text + "]"
                     break
-        return re.sub(r'{.*?}', '', text.replace("—", ""))
+        return re.sub(r'{.*?}', '')
 
 def ass_to_srt(file_in_bytes, file_name):
     lines = file_in_bytes.decode()
@@ -90,6 +95,7 @@ def ass_to_srt(file_in_bytes, file_name):
             next_start = next_elements[1].replace(".", ",")
             next_end = next_elements[2].replace(".", ",")
             next_text = parse_text(next_elements)
+            
             if text == next_text:
                 i += 1
                 continue
