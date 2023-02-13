@@ -52,14 +52,13 @@ def convert_to_preferred_format(sec):
     sec %= 60
     return "%02d:%02d:%02d" % (hour, min, sec)
 
-def parse_text(elements) -> str:
-        effect = elements[8]
-        text = ''.join(elements[9:]).strip().replace("\\N", " ")
+def parse_text(element) -> str:
+        text = ''.join(element['text']).strip().replace("\\N", " ")
         
         if text.startswith('—'):
             text = text.replace("—", "")
 
-        if effect: 
+        if element['fx']: 
             text = "[" + text + "]"
         
         else:
@@ -68,33 +67,45 @@ def parse_text(elements) -> str:
                 if tag in text:
                     text = "[" + text + "]"
                     break
-        return re.sub(r'{.*?}', '')
+        return re.sub(r'{.*?}', '', text)
+
+
+def sort_by_time(parsed_lines):
+    return parsed_lines['start']
+
 
 def ass_to_srt(file_in_bytes, file_name):
-    lines = file_in_bytes.decode()
-                
+    lines = file_in_bytes.decode('utf-8').split('\n')
+    
     # remove everything but Dialogue
     lines = [l for l in lines if l.startswith('Dialogue: ')]
 
-    # split the file into events
-    events = ''.join(lines).strip().split('Dialogue: ')
-
+    parsed_lines = []
+    for line in lines:
+        l = line.split(',')
+        parsed_lines.append({
+            'start': l[1], 
+            'end': l[2],
+            'fx': l[8],
+            'text': l[9:]
+        })
+    
+    parsed_lines.sort(key=sort_by_time)
+    
     srt_events = []
-    i = 1
-    while i < len(events[1:]):
-        event = events[i]
-        elements = event.split(',')
-        start = elements[1].replace(".", ",")
-        end = elements[2].replace(".", ",")
-        text = parse_text(elements)
+    i = 0
+    while i < len(parsed_lines):
+        element = parsed_lines[i]
+        start = element['start'].replace(".", ",")
+        end = element['end'].replace(".", ",")
+        text = parse_text(element)
         
         # check if the end time of the current line is greater than the start time of the next line
-        while i < len(events[1:]) - 1:
-            next_event = events[i + 1]
-            next_elements = next_event.split(',')
-            next_start = next_elements[1].replace(".", ",")
-            next_end = next_elements[2].replace(".", ",")
-            next_text = parse_text(next_elements)
+        while i < len(lines) - 1:
+            next_element = parsed_lines[i + 1]
+            next_start = next_element['start'].replace(".", ",")
+            next_end = next_element['end'].replace(".", ",")
+            next_text = parse_text(next_element)
             
             if text == next_text:
                 i += 1
