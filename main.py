@@ -91,9 +91,10 @@ def result(message):
                         res = cur.fetchone()
                         a = datetime.fromtimestamp(relese['updated'])
 
+                        em = "🔘"
+
                         time_up = f"Последняя серия вышла: {'по расписанию' if week['day'] == a.weekday() else 'не по расписанию'} ({a.day} {name_month(a.month)} {a.hour if a.hour > 9 else f'0{a.hour}'}:{a.minute if a.minute > 9 else f'0{a.minute}'}:{a.second if a.second > 9 else f'0{a.second}'})"
 
-                        em = "🔘"
                         if res:
                             if int(res[3]) == -1:
                                 time_up = f"Стадия: {res[5] if res[5] != None else 'В работе'}. {time_up}"
@@ -223,13 +224,13 @@ def query_handler(call):
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
                                   text='Тогда перепроверь id и попробуй снова /start id')
         elif "translation" in call.data:
-            cur.execute(f'''UPDATE results SET status = "Перевод/редактура" WHERE id={call.data.split(".")[1]};''')
+            cur.execute(f'''UPDATE results SET status = "Перевод/редактура" WHERE chat={call.data.split(".")[1]};''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Перевод/редактура"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "voiceover" in call.data:
-            cur.execute(f'''UPDATE results SET status = "Озвучка" WHERE id={call.data.split(".")[1]};''')
+            cur.execute(f'''UPDATE results SET status = "Озвучка" WHERE chat={call.data.split(".")[1]};''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Озвучка"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "timing" in call.data:
-            cur.execute(f'''UPDATE results SET status = "Тайминг/фиксы" WHERE id={call.data.split(".")[1]};''')
+            cur.execute(f'''UPDATE results SET status = "Тайминг/фиксы" WHERE chat={call.data.split(".")[1]};''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Тайминг/фиксы"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "assembling" in call.data:
             cur.execute(f'''UPDATE results SET status = "Сборка" WHERE chat={call.data.split(".")[1]};''')
@@ -263,7 +264,7 @@ def convert_sub(message: types.Message):
 def schedules():
     schedule.every(3).minutes.do(lambda: check(bot, con))
     schedule.every(3).minutes.do(lambda: checkTime(bot, con))
-    schedule.every().sunday.at("14:00").do(lambda: check_status_relise_in_chats(bot, con))
+    schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con))
     while True:
         schedule.run_pending()
 
