@@ -48,17 +48,17 @@ def convert_to_preferred_format(sec):
     hour = sec // 3600
     sec %= 3600
     min = sec // 60
-    sec %= 60
-    return "%02d:%02d:%02d" % (hour, min, sec)
+    return "%02d чaсoв %02d минут" % (hour, min)
 
 
 def send_res_rel_time(timer, bot, relese, cur, response, con):
     days = timer.days
     _time = convert_to_preferred_format(timer.seconds)
     daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
+    print(days)
     if days >= 0:
         # 734264203 relese[0]
-        bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} и {_time}\n\n#Time")
+        bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} {_time}\n\n#Time")
         cur.execute(f'''select * from results where chat = {int(relese[0])}''')
         temp = cur.fetchone()
         if temp:

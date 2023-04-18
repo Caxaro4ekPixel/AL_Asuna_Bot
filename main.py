@@ -45,7 +45,7 @@ def id(message):
     print(message)
 
 
-@bot.message_handler(commands=['stop'])
+@bot.message_handler(commands=['kill'])
 def stop(message):
     log(f'send stop {message.chat.id, message.chat.username, message.text}')
     bot.send_message(734264203, "АЛЯЯЯРМ!")
@@ -190,7 +190,7 @@ def sub_is_ready(message):
     try:
         cur = con.cursor()
         time_alert = cur.execute(f"""SELECT time_alerts  from chats c where id={message.chat.id};""").fetchone()
-        if time_alert:
+        if time_alert[0]:
             time_ready_sub = datetime.now() - datetime.strptime(time_alert[0], "%Y-%m-%d %H:%M:%S.%f")
         else:
             if message.reply_to_message is None:
