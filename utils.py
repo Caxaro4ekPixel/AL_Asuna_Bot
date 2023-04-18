@@ -36,8 +36,7 @@ def normolize_text(s):
 
 
 def log(mess, log_type='info'):
-    logging.basicConfig(filename='logging file.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S', level='INFO')
+    logging.basicConfig(filename='logging file.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level='INFO')
     if log_type == 'info':
         logging.info(mess)
     elif log_type == 'error':
