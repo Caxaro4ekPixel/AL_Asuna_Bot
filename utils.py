@@ -73,3 +73,9 @@ def send_res_rel_time(timer, bot, relese, cur, response, con):
             cur.execute(f'''delete from chats where id_relese={int(response["id"])}''')
             bot.send_message(chat_id=relese[0], text=f"Релиз завершён! Всем спасибо за работу! Этот чат более не активен.")
     con.commit()
+
+
+def resetting_requests_gpt(con):
+    cur = con.cursor()
+    cur.execute(f'''update team_tg set gpt_count = 0;''')
+    con.commit()

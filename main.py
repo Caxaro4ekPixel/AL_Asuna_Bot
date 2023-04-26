@@ -7,7 +7,7 @@ import threading
 from telegram import ParseMode
 from datetime import datetime, timedelta
 import os
-from utils import name_month, name_week_day, log, convert_to_preferred_format, send_res_rel_time
+from utils import name_month, name_week_day, log, convert_to_preferred_format, send_res_rel_time, resetting_requests_gpt
 from check_time import checkTime
 from reader_RSS import check
 from check_status_relise import check_status_relise_in_chats
@@ -183,28 +183,32 @@ def times(message):
 def gpt_request(message):
     try:
         cur = con.cursor()
-        user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
-        if user:
-            text_gpt = message.text.replace('/gpt ', "")
-            gpt_request_text =[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": text_gpt}
-            ]
+        count = cur.execute('''select SUM(tt.gpt_count) from team_tg tt;''').fetchone()
+        if count[0] < 100:
+            user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
+            if user:
+                text_gpt = message.text.replace('/gpt ', "")
+                gpt_request_text =[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": text_gpt}
+                ]
 
-            log(str(gpt_request_text), "info")
+                log(str(gpt_request_text), "info")
 
-            bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=gpt_request_text
-            )
+                bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=gpt_request_text
+                )
 
-            bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
-            gpt_count = int(user[3]) + 1
-            cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
-            con.commit()
+                bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
+                gpt_count = int(user[3]) + 1
+                cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
+                con.commit()
+            else:
+                bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
         else:
-            bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
+            bot.reply_to(message=message, text="🧐Закончилось кол-во запросов в неделю, ждите воскресенья 23:00🧐")
     except Exception as err:
         log(f"ERROR {err}", "error")
 
@@ -348,6 +352,7 @@ def schedules():
     schedule.every(3).minutes.do(lambda: check(bot, con))
     schedule.every(3).minutes.do(lambda: checkTime(bot, con))
     schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con))
+    schedule.every().sunday.at("23:00").do(lambda: resetting_requests_gpt(con))
     while True:
         schedule.run_pending()
 
