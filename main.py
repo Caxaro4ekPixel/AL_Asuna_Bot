@@ -200,6 +200,9 @@ def gpt_request(message):
             )
 
             bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
+            gpt_count = int(user[3]) + 1
+            cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
+            con.commit()
         else:
             bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
     except Exception as err:
