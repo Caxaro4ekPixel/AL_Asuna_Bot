@@ -188,23 +188,24 @@ def gpt_request(message):
             user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
             if user:
                 text_gpt = message.text.replace('/gpt ', "")
-                gpt_request_text =[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": text_gpt}
-                ]
+                if len(text_gpt) > 2:
+                    gpt_request_text =[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": text_gpt}
+                    ]
 
-                log(str(gpt_request_text), "info")
+                    log(str(gpt_request_text), "info")
 
-                bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=gpt_request_text
-                )
+                    bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=gpt_request_text
+                    )
 
-                bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
-                gpt_count = int(user[3]) + 1
-                cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
-                con.commit()
+                    bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
+                    gpt_count = int(user[3]) + 1
+                    cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
+                    con.commit()
             else:
                 bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
         else:
