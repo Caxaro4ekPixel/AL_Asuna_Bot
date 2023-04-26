@@ -14,10 +14,16 @@ from check_status_relise import check_status_relise_in_chats
 from decouple import config
 import schedule
 from ass_to_srt import ass_to_srt
+import tiktoken
+import openai
 
 bot = telebot.TeleBot(config("TOKEN"), parse_mode=None)
 con = sqlite3.connect('db.db', check_same_thread=False)
+openai.api_key = config("OPENAI_API_KEY")
+admin_chat_id = int(config("ADMIN_CHAT_ID"))
 
+max_response_tokens = 250
+token_limit = 4096
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -42,6 +48,7 @@ def start(message):
 
 @bot.message_handler(commands=['id'])
 def id(message):
+    print(message.chat.id)
     print(message)
 
 
@@ -172,6 +179,70 @@ def times(message):
         send_res_rel_time(timer, bot, relese, cur, response, con)
 
 
+@bot.message_handler(commands=['gpt'])
+def gpt_request(message):
+    try:
+        cur = con.cursor()
+        user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
+        if user:
+            text_gpt = message.text.replace('/gpt ', "")
+            gpt_request_text =[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": text_gpt}
+            ]
+
+            log(str(gpt_request_text), "info")
+
+            bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=gpt_request_text
+            )
+
+            bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
+        else:
+            bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
+    except Exception as err:
+        log(f"ERROR {err}", "error")
+
+@bot.message_handler(commands=['reg'])
+def reg_new_user(message):
+    try:
+        if message.chat.type == "private":
+            cur = con.cursor()
+            user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
+            name_al = message.text.split()[1:]
+            if name_al:
+                name_al = name_al[0]
+                if user:
+                    bot.reply_to(message=message, text="Уже зарегистрирован👀")
+                else:
+                    buttons = [
+                        [types.InlineKeyboardButton(text="✅Зарегистрировать✅", callback_data=f'reg_new_user.{message.from_user.username}.{message.chat.id}.{name_al}')],
+                        [types.InlineKeyboardButton(text="❌НЕТ❌", callback_data=f'reg_new_user.No.{message.chat.id}')],
+                    ]
+                    bot.send_message(chat_id=admin_chat_id, text="Регистрация нового пользователя: @{0}".format(message.from_user.username), reply_markup=types.InlineKeyboardMarkup(buttons))
+                    bot.reply_to(message=message, text="Ожидай пока сахар соизволит подтвердить👀")
+            else:
+                bot.reply_to(message=message, text="А ник твой на проекте, нам самим гадать?)\n(пример /reg Caxaro4ek)")
+        else:
+            bot.reply_to(message=message, text="🐙Только в лс...🐙")
+    except Exception as err:
+        log(f"ERROR {err}", "error")
+
+
+@bot.message_handler(commands=['unreg'])
+def reg_new_user(message):
+    if message.chat.id == admin_chat_id:
+        username = message.text.split()[1:][0]
+        cur = con.cursor()
+        user = cur.execute("""SELECT * from team_tg where tg_username='@{0}';""".format(username)).fetchone()
+        if user:
+            cur.execute("""delete from team_tg where id={0};""".format(user[0]))
+            con.commit()
+            bot.reply_to(message=message, text="Пользователь @{0} удалён".format(username))
+        else:
+            bot.reply_to(message=message, text="Пользователя @{0} не существует".format(username))
 
 
 @bot.message_handler(commands=['editstatus'])
@@ -190,13 +261,13 @@ def sub_is_ready(message):
     try:
         cur = con.cursor()
         time_alert = cur.execute(f"""SELECT time_alerts  from chats c where id={message.chat.id};""").fetchone()
-        if time_alert[0]:
+        if time_alert:
             time_ready_sub = datetime.now() - datetime.strptime(time_alert[0], "%Y-%m-%d %H:%M:%S.%f")
         else:
             if message.reply_to_message is None:
                 bot.reply_to(message=message, text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
             else:
-                time_ready_sub = datetime.now() - datetime.utcfromtimestamp(message.reply_to_message.date)
+                time_ready_sub = datetime.now() - datetime.fromtimestamp(message.reply_to_message.date)
         daysstr = ('день' if 2 > time_ready_sub.days > 0 else ('дня' if 1 < time_ready_sub.days < 5 else 'дней'))
         time = convert_to_preferred_format(time_ready_sub.seconds)
         bot.reply_to(message=message, text=f"🖋Саб вышел за: {time_ready_sub.days} {daysstr} и {time}✒️")
@@ -236,6 +307,14 @@ def query_handler(call):
         elif "assembling" in call.data:
             cur.execute(f'''UPDATE results SET status = "Сборка" WHERE chat={call.data.split(".")[1]};''')
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Сборка"\n(если вы ошиблись пропишите /editstatus)')
+        elif "reg_new_user" in call.data:
+            if call.data.split(".")[1] != "No":
+                cur.execute(f'''insert into team_tg (tg_username, al_name) values ("@{call.data.split(".")[1]}", "{call.data.split(".")[3]}")''')
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅@{0} зарегистрирован✅'.format(call.data.split(".")[1]))
+                bot.send_message(chat_id=int(call.data.split(".")[2]), text="Подтвердил☺️ Пользуйся!")
+            else:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='😎Ну нет, так нет😎')
+                bot.send_message(chat_id=int(call.data.split(".")[2]), text="❌Не подтвердил❌ (либо он промахнулся по кнопке, либо ты не либриец...) Попробуй ещё раз)")
     except Exception as err:
         log(f"ERROR {err}", "error")
     finally:
@@ -270,8 +349,8 @@ def schedules():
         schedule.run_pending()
 
 
-thread1 = threading.Thread(target=schedules)
-thread1.start()
+# thread1 = threading.Thread(target=schedules)
+# thread1.start()
 
 # thread1 = threading.Thread(target=check, args=[bot, con])
 # thread1.start()
