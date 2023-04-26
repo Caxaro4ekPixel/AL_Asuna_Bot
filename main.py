@@ -352,8 +352,8 @@ def schedules():
         schedule.run_pending()
 
 
-# thread1 = threading.Thread(target=schedules)
-# thread1.start()
+thread1 = threading.Thread(target=schedules)
+thread1.start()
 
 # thread1 = threading.Thread(target=check, args=[bot, con])
 # thread1.start()
