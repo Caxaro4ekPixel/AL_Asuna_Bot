@@ -14,7 +14,6 @@ from check_status_relise import check_status_relise_in_chats
 from decouple import config
 import schedule
 from ass_to_srt import ass_to_srt
-import tiktoken
 import openai
 
 bot = telebot.TeleBot(config("TOKEN"), parse_mode=None)
@@ -202,7 +201,7 @@ def gpt_request(message):
                         messages=gpt_request_text
                     )
 
-                    bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n")
+                    bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n", parse_mode=ParseMode.MARKDOWN)
                     gpt_count = int(user[3]) + 1
                     cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count};''')
                     con.commit()
