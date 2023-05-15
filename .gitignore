@@ -3,8 +3,7 @@ db.sqbpro
 .idea
 /logging file.log
 db.db-journal
-db.db
-./db.db
+
 .env
 ./.env
 __pycache__

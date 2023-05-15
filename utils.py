@@ -55,7 +55,6 @@ def send_res_rel_time(timer, bot, relese, cur, response, con):
     days = timer.days
     _time = convert_to_preferred_format(timer.seconds)
     daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))
-    print(days)
     if days >= 0:
         # 734264203 relese[0]
         bot.send_message(chat_id=relese[0], text=f"🕘Серия вышла за:🕘\n{days} {daysstr} {_time}\n\n#Time")

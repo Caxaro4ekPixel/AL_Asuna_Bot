@@ -164,9 +164,9 @@ def times(message):
     cur = con.cursor()
     cur.execute(f"SELECT * FROM chats WHERE id = {message.chat.id}")
     relese = cur.fetchone()
-    response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese[2]}').json()
     if relese:
         timer = convert_to_preferred_format(0)
+        response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese[2]}').json()
         if relese[3]:
             log(f"send info message timer {relese[0]}")
             timer = datetime.fromtimestamp(response["updated"]) - datetime.strptime(relese[3], '%Y-%m-%d %H:%M:%S.%f')
