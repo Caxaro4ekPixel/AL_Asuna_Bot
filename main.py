@@ -197,7 +197,7 @@ def gpt_request(message):
                     log(str(gpt_request_text), "info")
 
                     bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
-                    response = await openai.ChatCompletion.create(
+                    response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=gpt_request_text
                     )
@@ -361,11 +361,10 @@ def schedules():
 
 thread1 = threading.Thread(target=schedules)
 thread1.start()
-
-thread1 = threading.Thread(target=check, args=[bot, con])
-thread1.start()
-thread3 = threading.Thread(target=checkTime, args=[bot, con])
-thread3.start()
+# thread1 = threading.Thread(target=check, args=[bot, con])
+# thread1.start()
+# thread3 = threading.Thread(target=checkTime, args=[bot, con])
+# thread3.start()
 
 if __name__ == '__main__':
     while True:
