@@ -10,8 +10,8 @@ import os
 from utils import name_month, name_week_day, log, convert_to_preferred_format, send_res_rel_time, resetting_requests_gpt
 from check_time import checkTime
 from reader_RSS import check
-from check_status_relise import check_status_relise_in_chats
-from reminder_every_day import reminder_every_day
+# from check_status_relise import check_status_relise_in_chats
+# from reminder_every_day import reminder_every_day
 from decouple import config
 import schedule
 from ass_to_srt import ass_to_srt
