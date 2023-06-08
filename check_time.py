@@ -6,14 +6,10 @@ import time
 
 def checkTime(bot, con):
     cur = con.cursor()
-    print("maybe work")
     try:
         cur.execute('SELECT * FROM lastTimeUpdates')
         _time = cur.fetchone()
-        print(_time, datetime.now())
-        response = requests.get(f'http://api.anilibria.tv/v2/getUpdates?since={_time[1]}&limit=100',
-                                verify=False).json()
-        print(response)
+        response = requests.get(f'http://api.anilibria.tv/v2/getUpdates?since={_time[1]}&limit=100', verify=False).json()
         if 'error' not in response:
             if response:
                 cur.execute(f'UPDATE lastTimeUpdates SET timestamp = {response[0]["updated"] + 1}')

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import difflib
 import io
 import re
@@ -52,6 +52,7 @@ def convert_to_preferred_format(sec):
 
 
 def send_res_rel_time(timer, bot, relese, cur, response, con):
+    timer += timedelta(hours=3)
     days = timer.days
     _time = convert_to_preferred_format(timer.seconds)
     daysstr = ('день' if 2 > days > 0 else ('дня' if 1 < days < 5 else 'дней'))

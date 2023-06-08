@@ -11,6 +11,7 @@ from utils import name_month, name_week_day, log, convert_to_preferred_format, s
 from check_time import checkTime
 from reader_RSS import check
 from check_status_relise import check_status_relise_in_chats
+from reminder_every_day import reminder_every_day
 from decouple import config
 import schedule
 from ass_to_srt import ass_to_srt
@@ -186,7 +187,7 @@ def gpt_request(message):
         if count[0] < 100:
             user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
             if user:
-                text_gpt = message.text.replace('/gpt ', "")
+                text_gpt = message.text.replace('/gpt', "")
                 if len(text_gpt) > 2:
                     gpt_request_text =[
                         {"role": "system", "content": "You are a helpful assistant."},
@@ -196,7 +197,7 @@ def gpt_request(message):
                     log(str(gpt_request_text), "info")
 
                     bot.send_message(message.chat.id, "⌛️Ждём ответ⏳")
-                    response = openai.ChatCompletion.create(
+                    response = await openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=gpt_request_text
                     )
@@ -282,6 +283,26 @@ def sub_is_ready(message):
         log(ex, "error")
 
 
+@bot.message_handler(commands=['srt'])
+def convert_sub(message: types.Message):
+    try:
+        message.reply_to_message.document.file_id
+    except Exception as err:
+        log(f"ERROR {err}", "error")
+        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом")
+        return
+
+    file_info = bot.get_file(message.reply_to_message.document.file_id)
+    file_name = message.reply_to_message.document.file_name
+
+    if file_name.endswith('.ass'):
+        file_in_bytes = bot.download_file(file_info.file_path)
+        srt_file = ass_to_srt(file_in_bytes, file_name)
+        bot.send_document(message.chat.id, srt_file)
+    else:
+        bot.send_message(message.chat.id, "неизвестный формат")
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     try:
@@ -328,30 +349,11 @@ def query_handler(call):
         con.commit()
 
 
-@bot.message_handler(commands=['srt'])
-def convert_sub(message: types.Message):
-    try:
-        message.reply_to_message.document.file_id
-    except Exception as err:
-        log(f"ERROR {err}", "error")
-        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом")
-        return
-
-    file_info = bot.get_file(message.reply_to_message.document.file_id)
-    file_name = message.reply_to_message.document.file_name
-
-    if file_name.endswith('.ass'):
-        file_in_bytes = bot.download_file(file_info.file_path)
-        srt_file = ass_to_srt(file_in_bytes, file_name)
-        bot.send_document(message.chat.id, srt_file)
-    else:
-        bot.send_message(message.chat.id, "неизвестный формат")
-
-
 def schedules():
     schedule.every(3).minutes.do(lambda: check(bot, con))
     schedule.every(3).minutes.do(lambda: checkTime(bot, con))
-    schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con))
+    # schedule.every().day.at("17:00").do(lambda: reminder_every_day())
+    # schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con)) //Пока уберу ибо толку от неё мало, а чаты засерает
     schedule.every().sunday.at("23:00").do(lambda: resetting_requests_gpt(con))
     while True:
         schedule.run_pending()
@@ -360,10 +362,10 @@ def schedules():
 thread1 = threading.Thread(target=schedules)
 thread1.start()
 
-# thread1 = threading.Thread(target=check, args=[bot, con])
-# thread1.start()
-# thread3 = threading.Thread(target=checkTime, args=[bot, con])
-# thread3.start()
+thread1 = threading.Thread(target=check, args=[bot, con])
+thread1.start()
+thread3 = threading.Thread(target=checkTime, args=[bot, con])
+thread3.start()
 
 if __name__ == '__main__':
     while True:
