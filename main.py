@@ -36,12 +36,11 @@ def start(message):
         relese_id = message.text.replace("/start ", "")
         response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
         if "error" in response:
-            bot.send_message(message.chat.id, '🧐Такого релиза не существует!🧐')
+            bot.send_message(message.chat.id, '🧐Такого релиза не существует!🧐', message_thread_id=message.message_thread_id)
         else:
             bottons = [[types.InlineKeyboardButton(text="Да", callback_data='1')],
                        [types.InlineKeyboardButton(text="Нет", callback_data='0')]]
-            bot.send_message(message.chat.id, f'Релиз: {response["names"]["ru"]}?\nID: {relese_id}',
-                             reply_markup=types.InlineKeyboardMarkup(bottons))
+            bot.send_message(message.chat.id, f'Релиз: {response["names"]["ru"]}?\nID: {relese_id}', message_thread_id=message.message_thread_id, reply_markup=types.InlineKeyboardMarkup(bottons))
     else:
         pass
 
@@ -69,13 +68,13 @@ def set_raw(message):
         try:
             raw = message.text.replace("/raw ", "")
             if '/raw' in raw:
-                bot.send_message(message.chat.id, "❌Некоректно введено название❌")
+                bot.send_message(message.chat.id, "❌Некоректно введено название❌", message_thread_id=message.message_thread_id)
             else:
                 cur = con.cursor()
                 cur.execute(f'''update chats set raw='{raw}' where id = {message.chat.id};''')
                 con.commit()
                 cur.close()
-                bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅')
+                bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅', message_thread_id=message.message_thread_id)
         except:
             log(f'error set raw {message}', 'error')
     else:
@@ -261,7 +260,7 @@ def editstatus(message):
         [types.InlineKeyboardButton(text="Тайминг/фиксы", callback_data=f'timing.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Сборка", callback_data=f'assembling.{message.chat.id}')]
     ]
-    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(buttons))
+    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(buttons), message_thread_id=message.message_thread_id)
 
 
 @bot.message_handler(commands=['subready'])
@@ -289,7 +288,7 @@ def convert_sub(message: types.Message):
         message.reply_to_message.document.file_id
     except Exception as err:
         log(f"ERROR {err}", "error")
-        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом")
+        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом", message_thread_id=message.message_thread_id)
         return
 
     file_info = bot.get_file(message.reply_to_message.document.file_id)
@@ -298,9 +297,9 @@ def convert_sub(message: types.Message):
     if file_name.endswith('.ass'):
         file_in_bytes = bot.download_file(file_info.file_path)
         srt_file = ass_to_srt(file_in_bytes, file_name)
-        bot.send_document(message.chat.id, srt_file)
+        bot.send_document(message.chat.id, srt_file, message_thread_id=message.message_thread_id)
     else:
-        bot.send_message(message.chat.id, "неизвестный формат")
+        bot.send_message(message.chat.id, "неизвестный формат", message_thread_id=message.message_thread_id)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -312,8 +311,7 @@ def query_handler(call):
             cur.execute(f'''select * from chats where id={call.message.chat.id}''')
             chat = cur.fetchone()
             if chat:
-                bot.send_message(chat_id=call.message.chat.id,
-                                 text='Запись из этого чата уже есть, воспользуйтесь командой /update id')
+                bot.send_message(chat_id=call.message.chat.id, text='Запись из этого чата уже есть, воспользуйтесь командой /update id', message_thread_id=call.message.message_thread_id)
             else:
                 relese_id = call.message.text.split('\n')[1].replace('ID: ', '')
                 response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
@@ -339,10 +337,10 @@ def query_handler(call):
             if call.data.split(".")[1] != "No":
                 cur.execute(f'''insert into team_tg (tg_username, al_name) values ("@{call.data.split(".")[1]}", "{call.data.split(".")[3]}")''')
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅@{0} зарегистрирован✅'.format(call.data.split(".")[1]))
-                bot.send_message(chat_id=int(call.data.split(".")[2]), text="Подтвердил☺️ Пользуйся!")
+                bot.send_message(chat_id=int(call.data.split(".")[2]), text="Подтвердил☺️ Пользуйся!", message_thread_id=call.message.message_thread_id)
             else:
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='😎Ну нет, так нет😎')
-                bot.send_message(chat_id=int(call.data.split(".")[2]), text="❌Не подтвердил❌ (либо он промахнулся по кнопке, либо ты не либриец...) Попробуй ещё раз)")
+                bot.send_message(chat_id=int(call.data.split(".")[2]), text="❌Не подтвердил❌ (либо он промахнулся по кнопке, либо ты не либриец...) Попробуй ещё раз)", message_thread_id=call.message.message_thread_id)
     except Exception as err:
         log(f"ERROR {err}", "error")
     finally:
@@ -350,8 +348,9 @@ def query_handler(call):
 
 
 def schedules():
-    schedule.every(3).minutes.do(lambda: check(bot, con))
-    schedule.every(3).minutes.do(lambda: checkTime(bot, con))
+    # schedule.every(3).minutes.do(lambda: check(bot, con))
+    # schedule.every(3).minutes.do(lambda: checkTime(bot, con))
+    # schedule.every().day.at("17:00").do(lambda: reminder_every_day())
     # schedule.every().day.at("17:00").do(lambda: reminder_every_day())
     # schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con)) //Пока уберу ибо толку от неё мало, а чаты засерает
     schedule.every().sunday.at("23:00").do(lambda: resetting_requests_gpt(con))
@@ -361,10 +360,6 @@ def schedules():
 
 thread1 = threading.Thread(target=schedules)
 thread1.start()
-# thread1 = threading.Thread(target=check, args=[bot, con])
-# thread1.start()
-# thread3 = threading.Thread(target=checkTime, args=[bot, con])
-# thread3.start()
 
 if __name__ == '__main__':
     while True:
