@@ -36,7 +36,7 @@ def start(message):
         relese_id = message.text.replace("/start ", "")
         response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
         if "error" in response:
-            bot.send_message(message.chat.id, '🧐Такого релиза не существует!🧐', message_thread_id=message.message_thread_id)
+            bot.send_message(message.chat.id, '🧐Такого релиза не существует!🧐')
         else:
             bottons = [[types.InlineKeyboardButton(text="Да", callback_data='1')],
                        [types.InlineKeyboardButton(text="Нет", callback_data='0')]]
@@ -68,13 +68,13 @@ def set_raw(message):
         try:
             raw = message.text.replace("/raw ", "")
             if '/raw' in raw:
-                bot.send_message(message.chat.id, "❌Некоректно введено название❌", message_thread_id=message.message_thread_id)
+                bot.send_message(message.chat.id, "❌Некоректно введено название❌")
             else:
                 cur = con.cursor()
                 cur.execute(f'''update chats set raw='{raw}' where id = {message.chat.id};''')
                 con.commit()
                 cur.close()
-                bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅', message_thread_id=message.message_thread_id)
+                bot.send_message(message.chat.id, f'✅Успешно изменено на "{raw}"✅')
         except:
             log(f'error set raw {message}', 'error')
     else:
@@ -260,7 +260,7 @@ def editstatus(message):
         [types.InlineKeyboardButton(text="Тайминг/фиксы", callback_data=f'timing.{message.chat.id}')],
         [types.InlineKeyboardButton(text="Сборка", callback_data=f'assembling.{message.chat.id}')]
     ]
-    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(buttons), message_thread_id=message.message_thread_id)
+    bot.send_message(message.chat.id, f'Каков статус релиза?', reply_markup=types.InlineKeyboardMarkup(buttons))
 
 
 @bot.message_handler(commands=['subready'])
@@ -297,7 +297,10 @@ def convert_sub(message: types.Message):
     if file_name.endswith('.ass'):
         file_in_bytes = bot.download_file(file_info.file_path)
         srt_file = ass_to_srt(file_in_bytes, file_name)
-        bot.send_document(message.chat.id, srt_file, message_thread_id=message.message_thread_id)
+        if message.is_topic_message:
+            bot.send_document(message.chat.id, srt_file, message_thread_id=message.message_thread_id)
+        else:
+            bot.send_document(message.chat.id, srt_file)
     else:
         bot.send_message(message.chat.id, "неизвестный формат", message_thread_id=message.message_thread_id)
 
@@ -348,9 +351,8 @@ def query_handler(call):
 
 
 def schedules():
-    # schedule.every(3).minutes.do(lambda: check(bot, con))
-    # schedule.every(3).minutes.do(lambda: checkTime(bot, con))
-    # schedule.every().day.at("17:00").do(lambda: reminder_every_day())
+    schedule.every(3).minutes.do(lambda: check(bot, con))
+    schedule.every(3).minutes.do(lambda: checkTime(bot, con))
     # schedule.every().day.at("17:00").do(lambda: reminder_every_day())
     # schedule.every().sunday.at("16:30").do(lambda: check_status_relise_in_chats(bot, con)) //Пока уберу ибо толку от неё мало, а чаты засерает
     schedule.every().sunday.at("23:00").do(lambda: resetting_requests_gpt(con))
