@@ -25,6 +25,7 @@ admin_chat_id = int(config("ADMIN_CHAT_ID"))
 max_response_tokens = 250
 token_limit = 4096
 
+
 @bot.message_handler(commands=['start'])
 def start(message):
     log(f"send start {message.chat.id, message.chat.username, message.text, message.chat.type}")
@@ -40,7 +41,9 @@ def start(message):
         else:
             bottons = [[types.InlineKeyboardButton(text="Да", callback_data='1')],
                        [types.InlineKeyboardButton(text="Нет", callback_data='0')]]
-            bot.send_message(message.chat.id, f'Релиз: {response["names"]["ru"]}?\nID: {relese_id}', message_thread_id=message.message_thread_id, reply_markup=types.InlineKeyboardMarkup(bottons))
+            bot.send_message(message.chat.id, f'Релиз: {response["names"]["ru"]}?\nID: {relese_id}',
+                             message_thread_id=message.message_thread_id,
+                             reply_markup=types.InlineKeyboardMarkup(bottons))
     else:
         pass
 
@@ -84,7 +87,8 @@ def set_raw(message):
 @bot.message_handler(commands=['report'])
 def result(message):
     log(f'get report {message.chat.id}, {message.chat.username}, {message.chat.type}', 'info')
-    bot.send_message(chat_id=734264203, text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
+    bot.send_message(chat_id=734264203,
+                     text=("@" + message.chat.username + " - " + message.text + " - " + message.chat.type))
     if message.chat.type == "private":
         bot.send_message(message.chat.id, "📈Ожидайте! формирую отчёт📈")
         cur = con.cursor()
@@ -172,9 +176,11 @@ def times(message):
             timer = datetime.fromtimestamp(response["updated"]) - datetime.strptime(relese[3], '%Y-%m-%d %H:%M:%S.%f')
         else:
             if message.reply_to_message is None:
-                bot.reply_to(message=message, text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
+                bot.reply_to(message=message,
+                             text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
             else:
-                timer = datetime.fromtimestamp(response["updated"]) - datetime.fromtimestamp(message.reply_to_message.date)
+                timer = datetime.fromtimestamp(response["updated"]) - datetime.fromtimestamp(
+                    message.reply_to_message.date)
         send_res_rel_time(timer, bot, relese, cur, response, con)
 
 
@@ -184,11 +190,12 @@ def gpt_request(message):
         cur = con.cursor()
         count = cur.execute('''select SUM(tt.gpt_count) from team_tg tt;''').fetchone()
         if count[0] < 100:
-            user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
+            user = cur.execute(
+                f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
             if user:
                 text_gpt = message.text.replace('/gpt', "")
                 if len(text_gpt) > 2:
-                    gpt_request_text =[
+                    gpt_request_text = [
                         {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": text_gpt}
                     ]
@@ -201,23 +208,28 @@ def gpt_request(message):
                         messages=gpt_request_text
                     )
 
-                    bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n", parse_mode=ParseMode.MARKDOWN)
+                    bot.reply_to(message=message, text="\n" + response['choices'][0]['message']['content'] + "\n",
+                                 parse_mode=ParseMode.MARKDOWN)
                     gpt_count = int(user[3]) + 1
-                    cur.execute(f'''UPDATE team_tg SET gpt_count = {gpt_count} where tg_username='@{message.from_user.username}';''')
+                    cur.execute(
+                        f'''UPDATE team_tg SET gpt_count = {gpt_count} where tg_username='@{message.from_user.username}';''')
                     con.commit()
             else:
-                bot.reply_to(message=message, text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
+                bot.reply_to(message=message,
+                             text="У тебя не достаточно прав, дабы пользоваться этой командой.\nПропиши /reg <Ник в команде>, что бы получить доступ")
         else:
             bot.reply_to(message=message, text="🧐Закончилось кол-во запросов в неделю, ждите воскресенья 23:00🧐")
     except Exception as err:
         log(f"ERROR {err}", "error")
+
 
 @bot.message_handler(commands=['reg'])
 def reg_new_user(message):
     try:
         if message.chat.type == "private":
             cur = con.cursor()
-            user = cur.execute(f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
+            user = cur.execute(
+                f"""SELECT * from team_tg where tg_username='@{message.from_user.username}';""").fetchone()
             name_al = message.text.split()[1:]
             if name_al:
                 name_al = name_al[0]
@@ -225,10 +237,13 @@ def reg_new_user(message):
                     bot.reply_to(message=message, text="Уже зарегистрирован👀")
                 else:
                     buttons = [
-                        [types.InlineKeyboardButton(text="✅Зарегистрировать✅", callback_data=f'reg_new_user.{message.from_user.username}.{message.chat.id}.{name_al}')],
+                        [types.InlineKeyboardButton(text="✅Зарегистрировать✅",
+                                                    callback_data=f'reg_new_user.{message.from_user.username}.{message.chat.id}.{name_al}')],
                         [types.InlineKeyboardButton(text="❌НЕТ❌", callback_data=f'reg_new_user.No.{message.chat.id}')],
                     ]
-                    bot.send_message(chat_id=admin_chat_id, text="Регистрация нового пользователя: @{0}".format(message.from_user.username), reply_markup=types.InlineKeyboardMarkup(buttons))
+                    bot.send_message(chat_id=admin_chat_id,
+                                     text="Регистрация нового пользователя: @{0}".format(message.from_user.username),
+                                     reply_markup=types.InlineKeyboardMarkup(buttons))
                     bot.reply_to(message=message, text="Ожидай пока сахар соизволит подтвердить👀")
             else:
                 bot.reply_to(message=message, text="А ник твой на проекте, нам самим гадать?)\n(пример /reg Caxaro4ek)")
@@ -272,7 +287,8 @@ def sub_is_ready(message):
             time_ready_sub = datetime.now() - datetime.strptime(time_alert[0], "%Y-%m-%d %H:%M:%S.%f")
         else:
             if message.reply_to_message is None:
-                bot.reply_to(message=message, text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
+                bot.reply_to(message=message,
+                             text="В данном чате я не кидала равку, так что ответьте этой же командой на сообщение с вашей равкой")
             else:
                 time_ready_sub = datetime.now() - datetime.fromtimestamp(message.reply_to_message.date)
         daysstr = ('день' if 2 > time_ready_sub.days > 0 else ('дня' if 1 < time_ready_sub.days < 5 else 'дней'))
@@ -288,7 +304,8 @@ def convert_sub(message: types.Message):
         message.reply_to_message.document.file_id
     except Exception as err:
         log(f"ERROR {err}", "error")
-        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом", message_thread_id=message.message_thread_id)
+        bot.send_message(message.chat.id, "Команда работает реплаем на сообщение с сабом",
+                         message_thread_id=message.message_thread_id)
         return
 
     file_info = bot.get_file(message.reply_to_message.document.file_id)
@@ -314,36 +331,49 @@ def query_handler(call):
             cur.execute(f'''select * from chats where id={call.message.chat.id}''')
             chat = cur.fetchone()
             if chat:
-                bot.send_message(chat_id=call.message.chat.id, text='Запись из этого чата уже есть, воспользуйтесь командой /update id', message_thread_id=call.message.message_thread_id)
+                bot.send_message(chat_id=call.message.chat.id,
+                                 text='Запись из этого чата уже есть, воспользуйтесь командой /update id',
+                                 message_thread_id=call.message.message_thread_id)
             else:
                 relese_id = call.message.text.split('\n')[1].replace('ID: ', '')
                 response = requests.get(f'https://api.anilibria.tv/v2/getTitle?id={relese_id}').json()
                 cur.execute(
                     f'''insert into chats (id, name, id_relese, code, name_ru, name_en, raw) values ({call.message.chat.id}, "{call.message.chat.title}", {int(relese_id)}, "{response['code']}", "{response['names']['ru']}", "{response['names']['en']}", "SubsPlease");''')
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Успешно добавлено!✅')
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                      text='✅Успешно добавлено!✅')
         elif call.data == '0':
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
                                   text='Тогда перепроверь id и попробуй снова /start id')
         elif "translation" in call.data:
             cur.execute(f'''UPDATE results SET status = "Перевод/редактура" WHERE chat={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Перевод/редактура"✅\n(если вы ошиблись пропишите /editstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                  text='✅Статус: "Перевод/редактура"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "voiceover" in call.data:
             cur.execute(f'''UPDATE results SET status = "Озвучка" WHERE chat={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Озвучка"✅\n(если вы ошиблись пропишите /editstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                  text='✅Статус: "Озвучка"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "timing" in call.data:
             cur.execute(f'''UPDATE results SET status = "Тайминг/фиксы" WHERE chat={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Тайминг/фиксы"✅\n(если вы ошиблись пропишите /editstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                  text='✅Статус: "Тайминг/фиксы"✅\n(если вы ошиблись пропишите /editstatus)')
         elif "assembling" in call.data:
             cur.execute(f'''UPDATE results SET status = "Сборка" WHERE chat={call.data.split(".")[1]};''')
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅Статус: "Сборка"\n(если вы ошиблись пропишите /editstatus)')
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                  text='✅Статус: "Сборка"\n(если вы ошиблись пропишите /editstatus)')
         elif "reg_new_user" in call.data:
             if call.data.split(".")[1] != "No":
-                cur.execute(f'''insert into team_tg (tg_username, al_name) values ("@{call.data.split(".")[1]}", "{call.data.split(".")[3]}")''')
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='✅@{0} зарегистрирован✅'.format(call.data.split(".")[1]))
-                bot.send_message(chat_id=int(call.data.split(".")[2]), text="Подтвердил☺️ Пользуйся!", message_thread_id=call.message.message_thread_id)
+                cur.execute(
+                    f'''insert into team_tg (tg_username, al_name) values ("@{call.data.split(".")[1]}", "{call.data.split(".")[3]}")''')
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                      text='✅@{0} зарегистрирован✅'.format(call.data.split(".")[1]))
+                bot.send_message(chat_id=int(call.data.split(".")[2]), text="Подтвердил☺️ Пользуйся!",
+                                 message_thread_id=call.message.message_thread_id)
             else:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text='😎Ну нет, так нет😎')
-                bot.send_message(chat_id=int(call.data.split(".")[2]), text="❌Не подтвердил❌ (либо он промахнулся по кнопке, либо ты не либриец...) Попробуй ещё раз)", message_thread_id=call.message.message_thread_id)
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                                      text='😎Ну нет, так нет😎')
+                bot.send_message(chat_id=int(call.data.split(".")[2]),
+                                 text="❌Не подтвердил❌ (либо он промахнулся по кнопке, либо ты не либриец...) Попробуй ещё раз)",
+                                 message_thread_id=call.message.message_thread_id)
     except Exception as err:
         log(f"ERROR {err}", "error")
     finally:
