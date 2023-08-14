@@ -151,8 +151,7 @@ def result(message):
                     for s in mess_dict[i]:
                         mes += s
                     mes += '\n-----------------\n'
-                    bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML,
-                                     disable_web_page_preview=True)
+                    bot.send_message(chat_id=message.chat.id, text=mes, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
             else:
                 raise "Что-то не то"
         except Exception as err:
