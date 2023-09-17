@@ -9,3 +9,4 @@ db.db-journal
 ./.env
 __pycache__
 db.db
+*.csv
