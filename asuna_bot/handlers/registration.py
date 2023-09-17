@@ -10,7 +10,7 @@ from aiogram.types import Message
 from asuna_bot.filters.admins import AdminFilter
 
 from asuna_bot.filters.chat_type import ChatTypeFilter
-from asuna_bot.db.mongo import mongo
+from asuna_bot.db.mongo import Mongo as db
 
 admin_router = Router()
 admin_router.message.filter(AdminFilter(), ChatTypeFilter("private"))
@@ -22,7 +22,7 @@ async def accept_user(msg: Message):
         username = msg.forward_from.username
         user_id = msg.forward_from.id
         full_name = msg.forward_from.full_name        
-        mongo.add_user(user_id, full_name, username)
+        await db.add_user(user_id, full_name, username)
         await msg.answer(f"{full_name} / @{username}\nДобавлен в базу! 👍")
         return
     

@@ -5,22 +5,40 @@
 отправляет клавиатуру с первичными настройками релиза для этого чата
 срабатывает только в чатах, которых еще нет в БД  
 """
+
 from aiogram import Router, types, html
 from aiogram.filters import CommandObject, Command
 from loguru import logger as log 
-from asuna_bot.db.mongo import mongo
+from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
+from asuna_bot.db.odm import Release
 
+from anilibria import AniLibriaClient, Title
 
-from anilibria import AniLibriaClient
 
 start_router = Router()
 start_router.message.filter(AllowedUserFilter(), Command("start"))
 
+
+async def add_release(message: types.Message, title: Title):
+    release = Release(
+                id=title.id,
+                chat_id=message.chat.id,
+                status=title.status.string,
+                code=title.code,
+                en_title=title.names.en,
+                ru_title=title.names.ru,
+                total_ep=title.type.episodes,
+                season=title.season,
+                is_ongoing=True,
+            )
+    await db.add_release(message.chat.id, release)
+
+
 async def is_title_exist(message, title_id):
 # если тайтл с этим id уже существует где-то в базе
-    chat = mongo.get_chat_by_title_id(title_id)
+    chat = await db.get_chat(title_id)
     log.info(chat)
     if chat: 
         if chat._id != message.chat.id:
@@ -36,13 +54,12 @@ async def is_title_exist(message, title_id):
     return False
 
 
-async def auto_search_title(message: types.Message, chat_id):
+async def auto_search_title(message: types.Message):
     libria = AniLibriaClient()
-
     try:
         titles = await libria.search_titles(
             message.chat.title.split("/")[0], 
-            filter="id,code,names,status"
+            filter="id,code,names,status,season,type,team"
         )
     except Exception as e:
         log.error(e)
@@ -51,38 +68,28 @@ async def auto_search_title(message: types.Message, chat_id):
     await message.answer(titles[0].code)
     
     if titles.count > 1:
-        ...
+        await message.answer("Найдено несколько тайтлов!")
     else:
-        mongo.add_release_to_chat(
-            titles[0].id, 
-            chat_id, 
-            titles[0].names.ru, 
-            titles[0].names.en, 
-            titles[0].code,
-        )
+        await add_release(message, titles[0])
+        await message.answer(f"Тайтл: {html.bold(titles[0].names.ru)} закреплен за этим чатом")
 
 
 async def id_search_title(message: types.Message, command: CommandObject):
     al_title_id = int(command.args)
-
+    
     exist = await is_title_exist(message, al_title_id)
-    if exist: return
+    if exist: 
+        return
 
     libria = AniLibriaClient()
     try:            
-        al_title = await libria.get_title(al_title_id, filter="id,code,names,status")
-        if not al_title:
+        title = await libria.get_title(al_title_id, filter="id,code,names,status,season,type,team")
+        if not title:
             await message.answer(f"Тайтл c id {str(al_title_id)} не найден 🧐")
             return False
         
-        mongo.add_release_to_chat(
-            al_title.id, 
-            message.chat.id, 
-            al_title.names.ru, 
-            al_title.names.en, 
-            al_title.code, 
-        )
-        await message.answer(f"Тайтл: {html.bold(al_title.names.ru)} закреплен за этим чатом")
+        await add_release(message, title)
+        await message.answer(f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом")
 
     except AttributeError as err:
         log.error(err)
@@ -92,12 +99,12 @@ async def id_search_title(message: types.Message, command: CommandObject):
 @start_router.message(ChatTypeFilter(chat_type="supergroup"))   
 async def cmd_start(message: types.Message, command: CommandObject):
     # если первый раз запускаем команду
-    chat = mongo.get_chat(message.chat.id)
+    chat = await db.get_chat(message.chat.id)
     if not chat:
-        mongo.add_chat(message.chat.id, message.chat.title)
+        await db.add_chat(message.chat.id, message.chat.title)
 
-    if command.args == None or not command.args.isdigit():
-        await auto_search_title(message, message.chat.id)
+    if command.args is None or not command.args.isdigit():
+        await auto_search_title(message)
 
     else:
         await id_search_title(message, command)
