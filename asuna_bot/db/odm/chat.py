@@ -19,10 +19,11 @@ class ChatConfig(BaseModel):
 class Chat(Document):
     id      : int
     status  : str = None
-    service_msg_id : int
+    msg_id  : int = 0
     name    : str
-    config  : ChatConfig = ChatConfig
+    config  : ChatConfig
     release : Optional[Link[Release]]
     
     class Settings:
         name = "chats"
+        
