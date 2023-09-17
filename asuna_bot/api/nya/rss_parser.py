@@ -1,6 +1,8 @@
 from urllib.parse import quote, urlencode
 from lxml import etree
-from dateutil.parser import *
+from dateutil.parser import parse
+import re
+
 
 def parse_submitter(full_str: str) -> str:
     b = full_str.find("]")
@@ -14,17 +16,26 @@ def parse_quality(full_str: str) -> str or None:
     else: return None
 
 
-def parse_serie(full_str: str) -> int:
+def parse_title(full_title: str) -> str:
+    title = re.search(r"\](.*?) -", full_title)
+    if title:
+        return title.group(1).strip()
+    else:
+         return full_title
+
+
+def parse_serie(full_str: str) -> float:
     ep = "00"
     if full_str.lower().startswith("[subsplease]"):
         ep = full_str.split(" (")[0].split(" ")[-1]
-
+        if not ep.isdigit():
+             ep = re.findall(r" \d+", full_str)[-1]
     if full_str.lower().startswith("[erai-raws]"):
         ep = full_str.split(" [")[0].split(" ")[-1]
 
     if ep.startswith("0"):
-        return int(ep[1:].strip())
-    return int(ep)
+        return float(ep[1:].strip())
+    return float(ep)
 
 
 def rss_to_json(resp, limit):
@@ -35,16 +46,21 @@ def rss_to_json(resp, limit):
                     is_remake = item.findtext("nyaa:remake", namespaces=item.nsmap) == "Yes"
                     is_trusted = item.findtext("nyaa:trusted", namespaces=item.nsmap) == "Yes"
                     item_type = "remake" if is_remake else "trusted" if is_trusted else "default"
-                    title = item.findtext("title")
+                    full_title = item.findtext("title")
+
+                    if "HEVC" in full_title:
+                         is_hevc = True
+                    else:
+                         is_hevc = False
 
                     torrent = {
-                        'id': item.findtext("guid").split("/")[-1],
+                        'id': int(item.findtext("guid").split("/")[-1]),
                         'category': item.findtext("nyaa:categoryId", namespaces=item.nsmap),
                         'url': item.findtext("guid"),
-                        'title': title,
+                        'full_title': full_title,
                         'file_url': item.findtext("link"),
                         #пока нет своего редиректа, поюзаем чужой xD
-                        'magnet': f'https://nyaasi.herokuapp.com/nyaamagnet/urn:btih:{item.findtext("nyaa:infoHash", namespaces=item.nsmap)}',
+                        'magnet': f'https://nyaasi-to-magnet.up.railway.app/sukebeimagnet/urn:btih:{item.findtext("nyaa:infoHash", namespaces=item.nsmap)}',
                         # 'magnet': magnet_builder(item.findtext("nyaa:infoHash", namespaces=item.nsmap), item.findtext("title")),
                         'size': item.findtext("nyaa:size", namespaces=item.nsmap),
                         'date': parse(item.findtext("pubDate")),
@@ -52,9 +68,11 @@ def rss_to_json(resp, limit):
                         'leechers': item.findtext("nyaa:leechers", namespaces=item.nsmap),
                         'downloads': item.findtext("nyaa:downloads", namespaces=item.nsmap),
                         'type': item_type, 
-                        'quality': parse_quality(title),
-                        'submitter': parse_submitter(title),
-                        'serie': parse_serie(title)
+                        'is_hevc': is_hevc,
+                        'title': parse_title(full_title),
+                        'quality': parse_quality(full_title),
+                        'submitter': parse_submitter(full_title),
+                        'serie': parse_serie(full_title)
                     }
 
                     torrents.append(torrent)

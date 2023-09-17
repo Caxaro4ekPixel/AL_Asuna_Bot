@@ -1,87 +1,100 @@
 import asyncio
-from aiohttp import ClientSession, ClientConnectorError
+from aiohttp import ClientSession
 
 from loguru import logger as log
 
-from asuna_bot.db.mongo import mongo
+from asuna_bot.db.mongo import Mongo as db
+from asuna_bot.db.odm.bot_conf import NyaaRssConf
 from asuna_bot.main.chat_control import ChatControl
 
 from .model import NyaaTorrent
 from .rss_parser import rss_to_json
-from .errors import HTTPException
 
 
-class RssFeed:
-    def __init__(self, interval) -> None:
-        self._chats = set()
+class NyaaRssFeed:
+    def __init__(self) -> None:
+        self._chats = dict()
         self._session = ClientSession()
-        self._interval = interval
-        self.running = True
-        self._base_url = 'https://nyaa.si/?'
-        self._params = {
-            "page": "rss",
-            "q": "[SubsPlease]",
-            "c": "1_2",
-            "f": "0"
-        }
+        self._running : bool = True
+        self._config : NyaaRssConf
 
-    async def register_chats(self):
-        chat_ids = await mongo.get_all_ongoing_chats()
-        for _id in chat_ids:
-            self._chats.add(ChatControl(_id))
+    async def _register_chats(self):
+        all_ongoings = await db.get_all_ongoing_chats()
+        for chat in all_ongoings:
+            if chat.id not in self._chats.keys():
+                await self._register_chat(chat)
+                
+        
+    async def _register_chat(self, chat):
+        new_chat = ChatControl(chat)
+        self._chats[chat.id] = new_chat
 
-    def push_update(self, torrents) -> None:
-        for chat in self._chats:
-            chat.nyaa_update(torrents)
+
+    async def _push_update(self, torrents) -> None:
+        for chat in self._chats.values():
+            await chat.nyaa_update(torrents)
             
 
-    async def _request(self, url: str, params: dict = None, limit=None):
-        log.debug(f"Send GET request to {url} with data: {params}")
+    async def _request(self, url: str, params: dict, limit):
         try:
             response = await self._session.get(url, params=params, timeout=30)
             raw = await response.text()
-        except ClientConnectorError as ex:
+        except Exception as ex:
             log.error(ex)
             return None
 
         try:
             json = rss_to_json(raw, limit=limit)
         except Exception as ex:
-            json = raw
+            json = None
             log.debug(ex)
         
-        log.debug(f"Got response from request {json}")
-        self.__catch_error(json)
         return json
 
 
-    def __catch_error(self, data: dict):
-        if not isinstance(data, dict):
-            return
-        if error := data.get("error"):
-            raise HTTPException(error["code"], error["message"])
-        if data.get("err"):
-            raise HTTPException(0, data["mes"])
-
-
-    async def run_polling(self):
+    async def start_polling(self):
         """Поллинг rss ленты"""
-        while self.running:
-            self.register_chats()
-            parsed_rss = await self._request(self._base_url, params=self._params, limit=30)
+        log.info("Start Nyaa.si RSS polling")
+        while self._running:
+            self._config = await db.get_nyaa_rss_conf()
+            self._build_params_str()
+
+            conf = self._config
+            await self._register_chats()
+
+            parsed_rss = await self._request(conf.base_url, conf.params, conf.limit)
             
-            if parsed_rss == None:
-                await asyncio.sleep(self._interval)
+            if parsed_rss is None:
+                await asyncio.sleep(conf.interval)
                 continue
             
-            rss_last_id = int(parsed_rss[0].get("id"))
+            rss_last_id = parsed_rss[0].get("id")
 
-            if rss_last_id <= await mongo.get_nyaa_rss_last_id():
+            if rss_last_id <= conf.last_id:
                 log.info("Нет новых торрентов")
-                 
             else:
-                torrents = [NyaaTorrent(**torrent) for torrent in parsed_rss]
-                self.push_update(torrents) # Делаем пуш чатам
-                await mongo.update_bot_conf(nyaa_rss_last_id=rss_last_id)
-            
-            await asyncio.sleep(self._interval)
+                torrents = [
+                    NyaaTorrent(**torrent) 
+                    for torrent in parsed_rss 
+                    if torrent.get("id") > conf.last_id
+                ]
+                await self._push_update(torrents) # Делаем пуш чатам
+                await db.update_nyaa_rss_conf(last_id=rss_last_id)
+
+            await asyncio.sleep(conf.interval)
+
+
+    def _build_params_str(self) -> None:
+        if self._config.submitters:
+            if len(self._config.submitters) > 1:
+                s = " || ".join(self._config.submitters)
+            else: 
+                s = self._config.submitters[-1]
+            self._config.params["q"] += s
+
+        if self._config.exceptions:
+            if len(self._config.exceptions) > 1:
+                e = " -".join(self._config.exceptions)
+            else:
+                e = f" -{self._config.exceptions[-1]}"
+            self._config.params["q"] += e
