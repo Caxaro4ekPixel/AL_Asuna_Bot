@@ -1,75 +1,83 @@
-import datetime
+
 from typing import List
-from .odm import *
+from .odm import User, Chat, Release, Episode, BotConfig, NyaaRssConf, Torrent
 from beanie.operators import Set, AddToSet
 
+
 class Mongo:
-    async def get_all_user_ids(self) -> List:
+    
+    @staticmethod
+    async def get_all_user_ids() -> List:
         return await User.find_all().to_list()
 
-    async def get_chat(self, chat_id: int):
-        return await Chat.find_one(Chat.id == chat_id)
-    
-    async def get_all_ongoing_chats():
-        ongoings = await Release.find_all(Release.is_ongoing == True)
-        return [ongoing.chat_id for ongoing in ongoings]
+
+    @staticmethod
+    async def get_chat(chat_id: int):
+        chat = await Chat.get(chat_id)
+        return chat
 
 
+    @staticmethod
+    async def get_all_ongoing_chats() -> List:
+        return await Chat.find(Chat.release.is_ongoing == True,   # noqa: E712
+                               fetch_links=True).to_list()
 
-    async def get_release(self, release_id: int):
+
+    @staticmethod
+    async def get_release(release_id: int) -> Release:
         return await Release.find_one(Release.id == release_id)
 
+
+    @staticmethod
+    async def get_nyaa_rss_conf() -> NyaaRssConf:
+        conf = await BotConfig.find({}).first_or_none()
+        return conf.nyaa_rss
     
-    async def get_bot_conf(self):
+
+    @staticmethod
+    async def get_bot_conf() -> BotConfig:
         return await BotConfig.find({}).first_or_none()
 
 
-    async def get_nyaa_rss_last_id(self) -> int:
-        return await self.get_bot_conf().nyaa_rss_last_id
-
-
-    async def add_chat(self, chat_id: int, name: str):
+    @staticmethod
+    async def add_chat(chat_id: int, name: str) -> None:
         new_chat = Chat(id=chat_id, name=name, release=None)
         await new_chat.create()
 
 
-    async def add_release(self, release_id: int, chat_id: int, ru_title: str, 
-                          en_title: str, code: str, season: str):
-        
-        new_release = Release(id=release_id, chat_id=chat_id, code=code, 
-                              en_title=en_title, ru_title=ru_title, season=season)
-        await new_release.create()
-        await Chat.find_one(Chat.id == chat_id).update(Set({Chat.release: new_release}))
+    @staticmethod
+    async def add_release(chat_id: int, release: Release) -> None:
+        await release.create()
+        await Chat.find_one(Chat.id == chat_id).update(
+            Set({Chat.release: release})
+        )
 
 
-    async def add_episode(self, release_id: int, series_num: int, status: str,
-                         released_at: datetime, deadline_at: datetime):
-        
-        release = await Release.find_one(Release.id == release_id)
-        new_episode = Episode(series_num=series_num, status=status, 
-                              released_at=released_at, deadline_at=deadline_at,
-                              release=release)
-        await new_episode.create()
+    @staticmethod
+    async def add_episode(release: Release, episode: Episode) -> None:
+        ep_num = str(episode.number)
+        await release.update(Set({"episodes" : {ep_num : episode}}))
 
     
-    async def add_torrent_to_episode(self, release_id: int, ep_num, torrent):
-        release = await self.get_release(release_id)
-        await Episode.find_one(release=release).update(AddToSet({Episode.torrents : torrent}))
-
-    
-    async def add_user(self, id: int, full_name: str, user_name: str, role: list[str]):
-        new_user = User(id=id, full_name=full_name, user_name=user_name, role=role)
+    @staticmethod
+    async def add_user(id: int, full_name: str, 
+                       user_name: str, role: list[str]) -> None:
+        new_user = User(id=id, full_name=full_name, 
+                        user_name=user_name, role=role)
         await new_user.create()
 
 
-    async def update_chat_conf(self, chat_id: int, **settings):
+    @staticmethod
+    async def update_chat_conf(chat_id: int, **settings) -> None:
         for key, val in settings.items():
-            await Chat.find_one(Chat.id == chat_id).update({"$set": {f"chats.config.{key}" : val}})
+            await Chat.find_one(Chat.id == chat_id).update(
+                Set({f"chats.config.{key}" : val})
+            )
 
 
-    async def update_bot_conf(self, **settings):
+    @staticmethod
+    async def update_nyaa_rss_conf(**settings) -> None:
         for key, val in settings.items():
-            await BotConfig.find({}).update({"$set": {f"bot_config.{key}" : val}})
-
-
-mongo = Mongo()
+            await BotConfig.find({}).update(
+                Set({f"nyaa_rss.{key}" : val})
+            )
