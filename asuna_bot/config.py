@@ -4,6 +4,7 @@ from environs import Env
 @dataclass
 class DBConf:
     connection_string: str
+    db_name: str
 
 @dataclass
 class TgBot:
@@ -12,15 +13,9 @@ class TgBot:
     admin_chat: int
 
 @dataclass
-class Miscellaneous:
-    al_url: str = "https://api.anilibria.tv/v2/"
-    nyaa_url: str = "https://nyaa.si/"
-
-@dataclass
 class Config:
     bot: TgBot
     db: DBConf
-    misc: Miscellaneous
 
 
 def load_config(path: str = None):
@@ -40,9 +35,9 @@ def load_config(path: str = None):
             admin_chat=env.int("ADMIN_CHAT")
         ),
         db=DBConf(
-            connection_string=f"{scheme}://{username}:{password}@{host}/{db_name}"
-        ),
-        misc=Miscellaneous()
+            connection_string=f"{scheme}://{username}:{password}@{host}/{db_name}",
+            db_name=db_name
+        )
     )
 
 CONFIG = load_config(".env")
