@@ -1,7 +1,7 @@
 
 from typing import List
-from .odm import User, Chat, Release, Episode, BotConfig, NyaaRssConf, Torrent
-from beanie.operators import Set, AddToSet
+from .odm import User, Chat, Release, Episode, BotConfig, NyaaRssConf
+from beanie.operators import Set
 
 
 class Mongo:

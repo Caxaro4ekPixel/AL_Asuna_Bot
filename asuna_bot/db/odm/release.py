@@ -11,7 +11,7 @@ class Release(Document):
     en_title     : str
     ru_title     : str
     total_ep     : Optional[int]
-    season       : Optional[str]
+    season       : Optional[Dict]
     is_ongoing   : bool = False
     is_top       : bool = False
     is_commer    : bool = False
