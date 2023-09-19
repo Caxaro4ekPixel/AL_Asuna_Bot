@@ -29,8 +29,6 @@ async def add_release(message: types.Message, title: Title):
                 code=title.code,
                 en_title=title.names.en,
                 ru_title=title.names.ru,
-                total_ep=title.type.episodes,
-                season=title.season,
                 is_ongoing=True,
             )
     await db.add_release(message.chat.id, release)

@@ -35,7 +35,7 @@ class NyaaRssFeed:
             await chat.nyaa_update(torrents)
             
 
-    async def _request(self, url: str, params: dict, limit):
+    async def _rss_request(self, url: str, params: dict, limit):
         try:
             response = await self._session.get(url, params=params, timeout=30)
             raw = await response.text()
@@ -62,7 +62,7 @@ class NyaaRssFeed:
             conf = self._config
             await self._register_chats()
 
-            parsed_rss = await self._request(conf.base_url, conf.params, conf.limit)
+            parsed_rss = await self._rss_request(conf.base_url, conf.params, conf.limit)
             
             if parsed_rss is None:
                 await asyncio.sleep(conf.interval)

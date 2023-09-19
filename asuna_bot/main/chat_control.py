@@ -13,7 +13,8 @@ from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta
 from aiogram.types import BufferedInputFile, Message
 from pytz import timezone
-
+from anilibria import TitleEpisode, EncodeStart, Connect
+from .anilibria_client import al_client
 
 SITE_URL = "https://www.anilibria.tv/release/"
 BACK_URL = "https://backoffice.anilibria.top/resources/anime__releases/"
@@ -26,16 +27,25 @@ class ChatControl:
         self._ep: Episode
         self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
         self._last_msg: Message
-        self._admin_chat = CONFIG.bot.admin_chat
+        self._admin_chat = CONFIG.bot.admin_chat    
+
+        # Это декораторы websocket event
+        al_client.on_startup()(self.client_start)
+        al_client.on(Connect)(self.libria_connect)
+        al_client.on(TitleEpisode)(self.episode_update)
+        al_client.on(EncodeStart)(self.encoding_start)
+
+
+        #TODO: заменить все 'self._admin_chat' на 'self._chat.id' 
+
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
-            s1 = self._release.en_title
-            s2 = torrent.title
+            s1 = self._release.en_title.lower()
+            s2 = torrent.title.lower()
 
             if self._chat.config.submitter in torrent.submitter:
-                ratio = SequenceMatcher(None, s1.lower(), s2.lower()).ratio()
-                log.debug(f"comparing: {s1} <<AND>> {s2}; ratio={ratio}")
+                ratio = SequenceMatcher(None, s1, s2).ratio()
                 
                 if ratio > 0.75:
                    self._torrents.append(torrent)
@@ -43,10 +53,39 @@ class ChatControl:
         if self._torrents:
             await self._add_new_episode() 
             await self._send_message_to_chat()
+            # TODO
             # await self.send_torrents_to_chat()
             # await self._bot.pin_chat_message(self._admin_chat, self._last_msg.message_id)
             # await self.del_last_srvc_msg()
-            self._torrents = []
+            self._torrents.clear()
+
+
+    async def client_start(self):
+        print("AniLibria WebSocket client is started")
+
+
+    async def encoding_start(self, event: EncodeStart) -> None:
+            if event.id == self._release.id:
+                await self._bot.send_message(
+                    self._admin_chat, 
+                    f"Начало кодирования {event.quality} {event.episode} серии \n{self._release.ru_title}"
+                )
+
+
+    async def episode_update(self, event: TitleEpisode) -> None:
+            if event.title.id == self._release.id:
+                await self._bot.send_message(
+                    self._admin_chat, 
+                    f"Вышла {event.episode.episode}-я серия \n{event.title.names.ru}"
+                )
+
+
+    async def libria_connect(self, event: Connect) -> None:
+            print(f"connected to {event.api_version}")
+
+
+    async def _update_torrents():
+        ...
 
 
     async def _add_new_episode(self):
@@ -141,7 +180,7 @@ class ChatControl:
 
         text3 = [
             "",
-            f"﴾{html.link('❤️Сайт❤️', SITE_URL+rel.code+'.html')}  ‖  {html.link('🖤Админка🖤', BACK_URL+str(rel.id))}﴿", # noqa: E501 
+            f"﴾{html.link('❤️Сайт❤️', SITE_URL+rel.code+'.html')}  ‖  {html.link('🖤Админка🖤', BACK_URL+str(rel.id))}﴿",
             "",
             f"⏳<i>Дедлайн</i>:  <b>{deadline} МСК</b>",
             html.spoiler(self._random_kaomoji())
@@ -181,4 +220,5 @@ class ChatControl:
 
     async def _del_last_srvc_msg(self):
         if self._last_msg:
-            await self._bot.delete_message(self._admin_chat, self._last_msg.message_id+1)
+            await self._bot.delete_message(self._admin_chat, 
+                                           self._last_msg.message_id+1)

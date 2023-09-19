@@ -1,13 +1,11 @@
-from typing import List, Optional
+from typing import List
 from beanie import Document
 
 
 class User(Document):
-    id        : int
-    full_name : str
-    username  : Optional[str]
-    al_name   : Optional[str] = None
-    role      : List[str]
+    id   : int
+    name : str
+    role : List[str]
 
     class Settings:
         name = "users"
