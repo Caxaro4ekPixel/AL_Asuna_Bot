@@ -13,25 +13,25 @@ from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
 from asuna_bot.db.odm import Release
-
+from aiogram import Bot
 from anilibria import AniLibriaClient, Title
-
+from asuna_bot.config import CONFIG
 
 start_router = Router()
 start_router.message.filter(AllowedUserFilter(), Command("start"))
 
 
-async def add_release(message: types.Message, title: Title):
+async def add_release(chat_id, title: Title):
     release = Release(
                 id=title.id,
-                chat_id=message.chat.id,
+                chat_id=chat_id,
                 status=title.status.string,
                 code=title.code,
                 en_title=title.names.en,
                 ru_title=title.names.ru,
                 is_ongoing=True,
             )
-    await db.add_release(message.chat.id, release)
+    await db.add_release(chat_id, release)
 
 
 async def is_title_exist(message, title_id):
@@ -52,7 +52,7 @@ async def is_title_exist(message, title_id):
     return False
 
 
-async def auto_search_title(message: types.Message):
+async def search_title(message: types.Message):
     libria = AniLibriaClient()
     try:
         titles = await libria.search_titles(
@@ -61,15 +61,22 @@ async def auto_search_title(message: types.Message):
         )
     except Exception as e:
         log.error(e)
-
+    
     del libria
-    await message.answer(titles[0].code)
+    return titles
+
+
+async def send_title_to_chat(titles, chat_id):
+    bot = Bot(token=CONFIG.bot.token)
+    
+    await bot.send_message(chat_id)
     
     if titles.count > 1:
-        await message.answer("Найдено несколько тайтлов!")
+        await bot.send_message(chat_id, "Найдено несколько тайтлов!")
+        #TODO добавить кнопки с тайтлами
     else:
-        await add_release(message, titles[0])
-        await message.answer(f"Тайтл: {html.bold(titles[0].names.ru)} закреплен за этим чатом")
+        await add_release(chat_id, titles.list[0].code)
+        await bot.send_message(chat_id, f"Тайтл: {html.bold(titles.list[0].names.ru)} закреплен за этим чатом")
 
 
 async def id_search_title(message: types.Message, command: CommandObject):
@@ -102,8 +109,8 @@ async def cmd_start(message: types.Message, command: CommandObject):
         await db.add_chat(message.chat.id, message.chat.title)
 
     if command.args is None or not command.args.isdigit():
-        await auto_search_title(message)
-
+        titles = await search_title(message)
+        await send_title_to_chat(titles, message.chat.id)
     else:
         await id_search_title(message, command)
 
