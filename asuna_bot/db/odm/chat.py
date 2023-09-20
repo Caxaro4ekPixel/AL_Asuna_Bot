@@ -21,8 +21,8 @@ class Chat(Document):
     status  : str = None
     msg_id  : int = 0
     name    : str
-    config  : ChatConfig
-    release : Optional[Link[Release]]
+    config  : ChatConfig = ChatConfig()
+    release : Optional[Link[Release]] = None
     
     class Settings:
         name = "chats"
