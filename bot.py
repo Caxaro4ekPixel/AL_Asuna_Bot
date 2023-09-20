@@ -3,13 +3,13 @@ from aiogram import Bot, Dispatcher
 from asuna_bot.handlers import __routers__
 from asuna_bot.config import CONFIG
 
-
 from motor.motor_asyncio import AsyncIOMotorClient
 from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
 
 from asuna_bot.api.nya.rss_feed import NyaaRssFeed
 from asuna_bot.main.anilibria_client import al_client
+
 
 async def migration() -> None:
     from migration import create_chat_list, create_release_list, create_user_list
@@ -45,6 +45,7 @@ async def rss_coro() -> None:
 
 if __name__ == "__main__":
     from asuna_bot.utils import logging
+
     logging.setup()
 
     loop = asyncio.get_event_loop()

@@ -5,10 +5,6 @@ from asuna_bot.db.odm import *
 from asuna_bot.db.odm.chat import ChatConfig
 
 
-
-
-
-
 def create_chat_list():
     new_chats = []
     chat_file = open("C:\\Users\\Admin\\Desktop\\asuna db\\chats.json", encoding='utf8')
@@ -23,7 +19,7 @@ def create_chat_list():
         new_config = ChatConfig()
         new_chat = Chat(id=chat_id, status=status, name=name, config=new_config, release=release)
         new_chats.append(new_chat)
-    
+
     return new_chats
 
 
@@ -31,7 +27,7 @@ def create_user_list():
     new_users = []
     user_file = open("C:\\Users\\Admin\\Desktop\\asuna db\\team_tg.json", encoding='utf8')
     users = json.load(user_file)
-    _id=0
+    _id = 0
 
     for user in users:
         full_name = user.get("al_name").strip()
@@ -55,7 +51,8 @@ def create_release_list():
         en_title = release.get("name_en")
         ru_title = release.get("name_ru")
         total_ep = release.get("series")
-        new_release = Release(id=_id, chat_id=0, status="idle", code=code, en_title=en_title, ru_title=ru_title, total_ep=total_ep)
+        new_release = Release(id=_id, chat_id=0, status="idle", code=code, en_title=en_title, ru_title=ru_title,
+                              total_ep=total_ep)
         new_releases.append(new_release)
 
     return new_releases
