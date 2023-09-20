@@ -6,7 +6,7 @@
 from aiogram import Router, types, Bot
 from asuna_bot.config import CONFIG    
 from asuna_bot.filters.supergroup import MigrateToSupergroup
-from asuna_bot.handlers.start import auto_search_title
+from asuna_bot.handlers.start import search_title, send_title_to_chat
 
 
 supergroup_router = Router()
@@ -17,5 +17,6 @@ async def supergroup(message: types.Message):
     new_chat_id = message.migrate_to_chat_id
     await bot.send_message(new_chat_id, f"теперь это супергруппа, id={new_chat_id}")
     
-    await auto_search_title(message, new_chat_id)
+    titles = await search_title(message)
+    await send_title_to_chat(titles, new_chat_id)
     del bot
