@@ -30,6 +30,7 @@ async def add_release(chat_id, title: Title):
                 en_title=title.names.en,
                 ru_title=title.names.ru,
                 is_ongoing=True,
+                episodes=None,
             )
     await db.add_release(chat_id, release)
 
@@ -75,7 +76,7 @@ async def send_title_to_chat(titles, chat_id):
         await bot.send_message(chat_id, "Найдено несколько тайтлов!")
         #TODO добавить кнопки с тайтлами
     else:
-        await add_release(chat_id, titles.list[0].code)
+        await add_release(chat_id, titles.list[0])
         await bot.send_message(chat_id, f"Тайтл: {html.bold(titles.list[0].names.ru)} закреплен за этим чатом")
 
 
