@@ -71,7 +71,7 @@ async def send_title_to_chat(titles, chat_id):
     
     await bot.send_message(chat_id, titles.list[0].code)
     
-    if titles.count > 1:
+    if titles.pagination.total_items > 1:
         await bot.send_message(chat_id, "Найдено несколько тайтлов!")
         #TODO добавить кнопки с тайтлами
     else:
