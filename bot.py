@@ -17,9 +17,9 @@ async def migration() -> None:
     client = AsyncIOMotorClient(CONFIG.db.connection_string)
     test = getattr(client, CONFIG.db.db_name)
     await init_beanie(database=test, document_models=__beanie_models__)
-    await User.insert_many(create_user_list())
+    # await User.insert_many(create_user_list())
     await Release.insert_many(create_release_list())
-    await Chat.insert_many(create_chat_list())
+    # await Chat.insert_many(create_chat_list())
     # conf = BotConfig()
     # await BotConfig.insert(conf)
 
