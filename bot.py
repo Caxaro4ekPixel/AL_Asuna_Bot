@@ -3,7 +3,6 @@ from aiogram import Bot, Dispatcher
 from asuna_bot.handlers import __routers__
 from asuna_bot.config import CONFIG
 
-
 from motor.motor_asyncio import AsyncIOMotorClient
 from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
@@ -11,15 +10,16 @@ from beanie import init_beanie
 from asuna_bot.api.nya.rss_feed import NyaaRssFeed
 from asuna_bot.main.anilibria_client import al_client
 
+
 async def migration() -> None:
     from migration import create_chat_list, create_release_list, create_user_list
     from asuna_bot.db.odm import Chat, Release, User, BotConfig
     client = AsyncIOMotorClient(CONFIG.db.connection_string)
     test = getattr(client, CONFIG.db.db_name)
     await init_beanie(database=test, document_models=__beanie_models__)
-    await User.insert_many(create_user_list())
+    # await User.insert_many(create_user_list())
     await Release.insert_many(create_release_list())
-    await Chat.insert_many(create_chat_list())
+    # await Chat.insert_many(create_chat_list())
     # conf = BotConfig()
     # await BotConfig.insert(conf)
 
@@ -45,6 +45,7 @@ async def rss_coro() -> None:
 
 if __name__ == "__main__":
     from asuna_bot.utils import logging
+
     logging.setup()
 
     loop = asyncio.get_event_loop()
