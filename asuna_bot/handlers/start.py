@@ -8,6 +8,8 @@
 
 from aiogram import Router, types, html
 from aiogram.filters import CommandObject, Command
+from aiogram.utils.keyboard import InlineKeyboardButton, InlineKeyboardBuilder
+from aiogram.types import CallbackQuery
 from loguru import logger as log
 from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AllowedUserFilter
@@ -16,6 +18,10 @@ from asuna_bot.db.odm import Release
 from aiogram import Bot
 from anilibria import AniLibriaClient, Title
 from asuna_bot.config import CONFIG
+from aiogram import F
+from asuna_bot.filters.callbacks import CallbacksTitle
+
+libria = AniLibriaClient()
 
 start_router = Router()
 start_router.message.filter(AllowedUserFilter(), Command("start"))
@@ -53,7 +59,6 @@ async def is_title_exist(message, title_id):
 
 
 async def search_title(message: types.Message):
-    libria = AniLibriaClient()
     try:
         titles = await libria.search_titles(
             message.chat.title.split("/")[0],
@@ -63,18 +68,20 @@ async def search_title(message: types.Message):
         log.error(e)
         return
 
-    del libria
     return titles
 
 
 async def send_title_to_chat(titles, chat_id):
-    bot = Bot(token=CONFIG.bot.token)
+    bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
 
     await bot.send_message(chat_id, titles.list[0].code)
 
     if titles.pagination.total_items > 1:
-        await bot.send_message(chat_id, "Найдено несколько тайтлов!")
-        # TODO добавить кнопки с тайтлами
+
+        markup = InlineKeyboardBuilder()
+        for i in range(len(titles.list)):
+            markup.row(InlineKeyboardButton(text=f"{titles.list[i].names.ru}", callback_data=CallbacksTitle(id=str(titles.list[i].id)).pack()))
+        await bot.send_message(chat_id, "Найдено несколько тайтлов!", reply_markup=markup.as_markup())
     else:
         await add_release(chat_id, titles.list[0])
         await bot.send_message(chat_id, f"Тайтл: {html.bold(titles.list[0].names.ru)} закреплен за этим чатом")
@@ -86,8 +93,6 @@ async def id_search_title(message: types.Message, command: CommandObject):
     exist = await is_title_exist(message, al_title_id)
     if exist:
         return
-
-    libria = AniLibriaClient()
     try:
         title = await libria.get_title(al_title_id, filter="id,code,names,status,season,type,team")
         if not title:
@@ -121,3 +126,14 @@ async def cmd_start_group(message: types.Message):
     await message.answer(
         f"Для моей работы, выдайте права с пунктом {html.bold('Анонимность')}"
     )
+
+
+@start_router.callback_query(CallbacksTitle.filter())
+async def cmd_callback_data(query: CallbackQuery, callback_data: CallbacksTitle):
+    try:
+        title = await libria.get_title(id=callback_data.id, filter="id,code,names,status,season,type,team")
+        await add_release(query.message.chat.id, title)
+    except AttributeError as err:
+        log.error(err)
+        await query.answer(str(err))
+
