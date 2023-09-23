@@ -1,4 +1,6 @@
 from typing import List
+
+from beanie import WriteRules
 from .odm import (
     User, Chat, Release, 
     Episode, BotConfig, NyaaRssConf, 
@@ -56,10 +58,12 @@ class Mongo:
 
     @staticmethod
     async def add_release(chat_id: int, release: Release) -> None:
-        await release.insert()
-        await Chat.find_one(Chat.id == chat_id).update(
-            Set({Chat.release: release})
-        )
+        if not Release.find_one(Release.id == release.id):
+            await release.insert()
+
+        chat = await Chat.find_one(Chat.id == chat_id)
+        chat.release = release
+        await chat.save(link_rule=WriteRules.WRITE)
 
     @staticmethod
     async def add_episode(release: Release, episode: Episode) -> None:

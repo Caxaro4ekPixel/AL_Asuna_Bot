@@ -18,7 +18,7 @@ class ChatConfig(BaseModel):
 
 class Chat(Document):
     id      : int
-    status  : str = None
+    status  : str = ""
     msg_id  : int = 0
     name    : str
     config  : ChatConfig = ChatConfig()

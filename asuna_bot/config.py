@@ -42,4 +42,5 @@ def load_config(path: str = None):
         )
     )
 
+
 CONFIG = load_config(".env")
