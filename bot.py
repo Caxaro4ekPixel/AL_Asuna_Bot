@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
 
-from asuna_bot.api.nya.rss_feed import NyaaRssFeed
+from asuna_bot.api import WsRssObserver
 from asuna_bot.main.anilibria_client import al_client
 
 
@@ -39,7 +39,7 @@ async def rss_coro() -> None:
     db = getattr(client, CONFIG.db.db_name)
     await init_beanie(database=db, document_models=__beanie_models__)
 
-    rss = NyaaRssFeed()
+    rss = WsRssObserver()
     await rss.start_polling()
 
 
@@ -49,7 +49,15 @@ if __name__ == "__main__":
     logging.setup()
 
     loop = asyncio.get_event_loop()
-    task1 = asyncio.ensure_future(bot_coro())
-    task2 = asyncio.ensure_future(rss_coro())
-    task3 = asyncio.ensure_future(al_client.astart())
-    loop.run_until_complete(asyncio.gather(task1, task2, task3))
+
+    gather = asyncio.gather(
+        loop.create_task(al_client.astart()),
+        loop.create_task(bot_coro()),
+        loop.create_task(rss_coro()),
+    )
+    loop.run_until_complete(gather)
+
+    # task1 = asyncio.ensure_future(bot_coro())
+    # task2 = asyncio.ensure_future(rss_coro())
+    # task3 = asyncio.ensure_future(al_client.astart())
+    # loop.run_until_complete(asyncio.gather(task1, task2, task3))

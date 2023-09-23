@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from environs import Env
 
+__version__ = "2.0.0b1"
+
 @dataclass
 class DBConf:
     connection_string: str

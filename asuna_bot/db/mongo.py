@@ -1,6 +1,10 @@
 from typing import List
-from .odm import User, Chat, Release, Episode, BotConfig, NyaaRssConf, AlApiConf
-from beanie.operators import Set
+from .odm import (
+    User, Chat, Release, 
+    Episode, BotConfig, NyaaRssConf, 
+    AlApiConf
+)
+from beanie.operators import Set, AddToSet
 
 
 class Mongo:
@@ -70,15 +74,21 @@ class Mongo:
         await new_user.create()
 
     @staticmethod
-    async def update_chat_conf(chat_id: int, **settings) -> None:
-        for key, val in settings.items():
+    async def update_chat_conf(chat_id: int, **kwargs) -> None:
+        for key, val in kwargs.items():
             await Chat.find_one(Chat.id == chat_id).update(
                 Set({f"chats.config.{key}": val})
             )
 
     @staticmethod
-    async def update_nyaa_rss_conf(**settings) -> None:
-        for key, val in settings.items():
+    async def update_ep_info(release: Release, episode: Episode, **kwargs) -> None:
+        ep_num = str(episode.number)
+        for key, val in kwargs.items():
+            await release.update(Set({f"episodes.{ep_num}.{key}": val}))
+
+    @staticmethod
+    async def update_nyaa_rss_conf(**kwargs) -> None:
+        for key, val in kwargs.items():
             await BotConfig.find({}).update(
                 Set({f"nyaa_rss.{key}": val})
             )
