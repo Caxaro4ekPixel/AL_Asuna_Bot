@@ -1,26 +1,22 @@
-import asyncio
-from asuna_bot.db.mongo import mongo
-import json
-from asuna_bot.db.odm import *
+import csv
+from asuna_bot.db.odm import Chat, Release, User
 from asuna_bot.db.odm.chat import ChatConfig
-
-
 
 
 
 
 def create_chat_list():
     new_chats = []
-    chat_file = open("C:\\Users\\Admin\\Desktop\\asuna db\\chats.json", encoding='utf8')
-    chats = json.load(chat_file)
+    chat_file = open("chats.csv", encoding='utf8')
+    chats = csv.reader(chat_file)
 
     for chat in chats:
-        chat_id = chat.get("id")
-        status = "idle"
-        name = chat.get("name")
-        release = chat.get("id_relese")
+        chat_id = int(chat[0])
+        status = None
+        name = chat[1]
+        release = chat[2]
 
-        new_config = ChatConfig()
+        new_config = ChatConfig(submitter=chat[7])
         new_chat = Chat(id=chat_id, status=status, name=name, config=new_config, release=release)
         new_chats.append(new_chat)
     
@@ -29,33 +25,38 @@ def create_chat_list():
 
 def create_user_list():
     new_users = []
-    user_file = open("C:\\Users\\Admin\\Desktop\\asuna db\\team_tg.json", encoding='utf8')
-    users = json.load(user_file)
-    _id=0
-
-    for user in users:
-        full_name = user.get("al_name").strip()
-        user_name = user.get("tg_username").strip()
-
-        new_user = User(id=_id, full_name=full_name, user_name=user_name, role=["team"])
-        new_users.append(new_user)
-        _id += 1
+    with open("parsed_members.txt", 'r', encoding='utf8') as file:
+        users = file.readlines()
+        for user in users:
+            _id = user.split(" / ")[0]
+            name = user.split(" / ")[1]
+            roles = user.split(" / ")[2].strip().replace(" ", "").split(",")
+            new_user = User(id=_id, name=name, role=roles)
+            new_users.append(new_user)
 
     return new_users
 
 
 def create_release_list():
     new_releases = []
-    release_file = open("C:\\Users\\Admin\\Desktop\\asuna db\\relesAL.json", encoding='utf8')
-    releases = json.load(release_file)
+    chat_file = open("chats.csv", encoding='utf8')
+    chats = csv.reader(chat_file)
 
-    for release in releases:
-        _id = release.get("id")
-        code = release.get("code")
-        en_title = release.get("name_en")
-        ru_title = release.get("name_ru")
-        total_ep = release.get("series")
-        new_release = Release(id=_id, chat_id=0, status="idle", code=code, en_title=en_title, ru_title=ru_title, total_ep=total_ep)
+    for chat in chats:
+        rel_id = chat[2]
+        chat_id = chat[0]
+        code = chat[4]
+
+        en_title = chat[6]
+        ru_title = chat[5]
+        new_release = Release(
+            id=rel_id, 
+            chat_id=chat_id, 
+            code=code, 
+            en_title=en_title, 
+            ru_title=ru_title, 
+            last_update=1624984055
+        )
         new_releases.append(new_release)
 
     return new_releases
