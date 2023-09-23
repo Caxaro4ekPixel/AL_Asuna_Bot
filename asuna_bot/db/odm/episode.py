@@ -1,19 +1,8 @@
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl, AnyUrl
+from pydantic import BaseModel
 from datetime import datetime
 from beanie import Link
 from .user import User
-
-
-class Torrent(BaseModel):
-    id: int
-    submitter: str
-    quality: str
-    url: HttpUrl
-    file_url: AnyUrl
-    magnet: AnyUrl
-    size: str
-    title: str
 
 
 class Episode(BaseModel):
@@ -28,4 +17,3 @@ class Episode(BaseModel):
     overall_time: Optional[int]
     uploaded_at: Optional[datetime]
     team: Optional[List[Link[User]]]
-    torrents: List[Torrent]
