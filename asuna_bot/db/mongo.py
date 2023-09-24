@@ -6,7 +6,7 @@ from .odm import (
     Episode, BotConfig, NyaaRssConf, 
     AlApiConf
 )
-from beanie.operators import Set, AddToSet
+from beanie.operators import Set
 
 
 class Mongo:
@@ -71,17 +71,15 @@ class Mongo:
         await release.update(Set({"episodes": {ep_num: episode}}))
 
     @staticmethod
-    async def add_user(id: int, full_name: str,
-                       user_name: str, role: list[str]) -> None:
-        new_user = User(id=id, full_name=full_name,
-                        user_name=user_name, role=role)
+    async def add_user(id: int, name: str, role: list[str]) -> None:
+        new_user = User(id=id, name=name, role=role)
         await new_user.create()
 
     @staticmethod
     async def update_chat_conf(chat_id: int, **kwargs) -> None:
         for key, val in kwargs.items():
             await Chat.find_one(Chat.id == chat_id).update(
-                Set({f"chats.config.{key}": val})
+                Set({f"config.{key}": val})
             )
 
     @staticmethod
