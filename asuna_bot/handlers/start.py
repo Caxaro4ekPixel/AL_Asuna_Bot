@@ -105,7 +105,7 @@ async def id_search_title(message: types.Message, command: CommandObject):
             await message.answer(f"Тайтл c id {str(al_title_id)} не найден 🧐")
             return False
 
-        await add_release(message, title)
+        await add_release(message.chat.id, title)
         await message.answer(f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом")
 
     except AttributeError as err:

@@ -24,8 +24,10 @@ class Mongo:
     @staticmethod
     async def get_chat_id_by_release_id(release_id: int) -> Chat:
         release = await Release.find_one(Release.id == release_id)
-        chat = await Chat.find_one(Chat.id == release.chat_id)
-        return chat
+        if release:
+            chat = await Chat.find_one(Chat.id == release.chat_id)
+            return chat
+        return None
 
     @staticmethod
     async def get_all_ongoing_chats() -> List:
