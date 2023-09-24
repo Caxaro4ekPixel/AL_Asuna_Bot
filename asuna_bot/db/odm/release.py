@@ -6,7 +6,7 @@ from .episode import Episode
 class Release(Document):
     id: int
     chat_id: int
-    status: Optional[str]
+    status: Optional[str] = ""
     code: str
     en_title: str
     ru_title: str
