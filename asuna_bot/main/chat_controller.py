@@ -12,6 +12,7 @@ from asuna_bot.config import CONFIG
 from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
+from aiogram.exceptions import TelegramBadRequest
 from pytz import timezone
 from anilibria import TitleUpdate, Title
 
@@ -50,8 +51,11 @@ class ChatController:
             await self._add_new_episode()
             await self._send_message_to_chat()
             await self._send_torrents_to_chat()
-            await self._bot.pin_chat_message(self.chat_id, self._last_msg.message_id)
-            await self._del_last_srvc_msg()
+            try:
+                await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
+                await self._del_last_srvc_msg()
+            except TelegramBadRequest as err:
+                pass
             self._torrents.clear()
 
     async def release_up(self, event: TitleUpdate) -> None:
@@ -179,7 +183,7 @@ class ChatController:
     async def _send_torrents_to_chat(self):
         session = ClientSession()
         for torrent in self._torrents:
-            response = await session.get(torrent.file_url, allow_redirects=True)
+            response = await session.get(str(torrent.file_url), allow_redirects=True)
 
             title = '{:.20}'.format(self._release.ru_title) + "..." \
                 if len(self._release.ru_title) >= 20 else self._release.ru_title
