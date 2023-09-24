@@ -13,7 +13,7 @@ from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta, datetime, UTC
 from aiogram.types import BufferedInputFile, Message
 from pytz import timezone
-from anilibria import TitleEpisode
+from anilibria import TitleUpdate
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
@@ -51,16 +51,17 @@ class ChatController:
             await self._add_new_episode()
             await self._send_message_to_chat()
             # TODO
-            # await self.send_torrents_to_chat()
+            # await self._send_torrents_to_chat()
             # await self._bot.pin_chat_message(self._admin_chat, self._last_msg.message_id)
-            # await self.del_last_srvc_msg()
+            # await self._del_last_srvc_msg()
             self._torrents.clear()
 
-    async def episode_update(self, event: TitleEpisode) -> None:
-        if (event.title.id == self._release.id and
-                event.title.updated > self._release.last_update):
+    async def release_up(self, event: TitleUpdate) -> None:
+        if (event.title.id == self._release.id):
 
-            self._ep = self._release.episodes.values()[-1]
+            ep = list(self._release.episodes)[-1]
+            self._ep = self._release.episodes.get(ep)
+
             overall_time = self._ep.date - datetime.now(UTC)
             overall_time = overall_time.astimezone(msk).strftime(fmt2)
 
@@ -79,7 +80,7 @@ class ChatController:
 
             if float(ep) == torrent.serie:
                 #TODO обновить сообщение с инфой, добавить ссылки на новый качества  
-
+                await self._send_torrents_to_chat()
                 return
 
         if self._release.is_commer:
