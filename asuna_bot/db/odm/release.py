@@ -19,3 +19,4 @@ class Release(Document):
 
     class Settings:
         name = "releases"
+        keep_nulls = False

@@ -18,3 +18,4 @@ class File(Document):
     
     class Settings:
         name = "files"
+        keep_nulls = False

@@ -14,3 +14,4 @@ class Log(Document):
 
     class Settings:
         name = "logs"
+        keep_nulls = False
