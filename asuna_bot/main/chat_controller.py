@@ -32,6 +32,9 @@ class ChatController:
         self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
         self._last_msg: Message
 
+        self._admin_chat = CONFIG.bot.admin_chat
+
+
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
             s1 = self._release.en_title.lower()
@@ -47,8 +50,8 @@ class ChatController:
             await self._add_new_episode()
             await self._send_message_to_chat()
             await self._send_torrents_to_chat()
-            await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
-            await self._del_last_srvc_msg()
+            # await self._bot.pin_chat_message(self._admin_chat, self._last_msg.message_id)
+            # await self._del_last_srvc_msg()
             self._torrents.clear()
 
     async def release_up(self, event: TitleUpdate) -> None:
@@ -57,13 +60,13 @@ class ChatController:
             ep = list(self._release.episodes)[-1]
             self._ep = self._release.episodes.get(ep)
 
-            td = self._ep.date - datetime.fromtimestamp(event.title.updated)
+            td = datetime.fromtimestamp(event.title.updated) - self._ep.date
 
             self._ep.overall_time = int(td.total_seconds())
             await self._release.save()
 
             await self._bot.send_message(
-                self._chat.id,
+                self._admin_chat,
                 f"{event.title.player.episodes.last}-я серия вышла за:\n"
                 f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
             )
@@ -73,7 +76,7 @@ class ChatController:
         ep = list(self._release.episodes)[-1]
         self._ep = self._release.episodes.get(ep)
 
-        td = self._ep.date - datetime.fromtimestamp(title.updated)
+        td = datetime.fromtimestamp(title.updated) - self._ep.date
 
         return td
 
@@ -85,7 +88,7 @@ class ChatController:
 
             if float(ep) == torrent.serie:
                 #TODO обновить сообщение с инфой, добавить ссылки на новый качества  
-                await self._send_torrents_to_chat()
+                # await self._send_torrents_to_chat()
                 return
 
         if self._release.is_commer:
@@ -169,7 +172,7 @@ class ChatController:
 
     async def _send_message_to_chat(self):
         text = self._craft_message_text()
-        self._last_msg = await self._bot.send_message(self._chat.id, text,
+        self._last_msg = await self._bot.send_message(self._admin_chat, text,
                                                       disable_web_page_preview=True)
         await asyncio.sleep(1)
 
@@ -186,11 +189,11 @@ class ChatController:
             filename = f"[{torrent.quality}] {title} [{serie}].torrent"
             bytes = await response.read()
             file = BufferedInputFile(bytes, filename)
-            await self._bot.send_document(self._chat.id, file)
+            await self._bot.send_document(self._admin_chat, file)
             await asyncio.sleep(1)
         await session.close()
 
     async def _del_last_srvc_msg(self):
         if self._last_msg:
-            await self._bot.delete_message(self._chat.id,
+            await self._bot.delete_message(self._admin_chat,
                                            self._last_msg.message_id + 1)
