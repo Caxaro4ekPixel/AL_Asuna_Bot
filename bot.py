@@ -13,21 +13,19 @@ from asuna_bot.main.anilibria_client import al_client
 
 
 async def migration() -> None:
-    from migration import create_chat_list, create_release_list, create_user_list
+    # from migration import create_chat_list, create_release_list, create_user_list
     from asuna_bot.db.odm import Chat, Release, User, BotConfig
     client = AsyncIOMotorClient(CONFIG.db.connection_string)
     test = getattr(client, CONFIG.db.db_name)
     await init_beanie(database=test, document_models=__beanie_models__)
     # await User.insert_many(create_user_list())
-    await Release.insert_many(create_release_list())
+    # await Release.insert_many(create_release_list())
     # await Chat.insert_many(create_chat_list())
-    # conf = BotConfig()
-    # await BotConfig.insert(conf)
+    conf = BotConfig()
+    await BotConfig.insert(conf)
 
 
 async def bot_coro() -> None:
-    # await migration()
-
     dp = Dispatcher()
     dp.include_routers(*__routers__)
 

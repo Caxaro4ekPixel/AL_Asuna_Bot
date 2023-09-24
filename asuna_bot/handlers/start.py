@@ -42,7 +42,7 @@ async def add_release(chat_id, title: Title):
 
 async def is_title_exist(message, title_id):
     # если тайтл с этим id уже существует где-то в базе
-    chat = await db.get_chat_id_by_title_id(title_id)
+    chat = await db.get_chat_id_by_release_id(title_id)
     if chat:
         if chat.id != message.chat.id:
             await message.answer(

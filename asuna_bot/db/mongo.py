@@ -22,8 +22,8 @@ class Mongo:
         return chat
 
     @staticmethod
-    async def get_chat_id_by_title_id(title_id: int) -> Chat:
-        release = await Release.find_one(Release.id == title_id)
+    async def get_chat_id_by_release_id(release_id: int) -> Chat:
+        release = await Release.find_one(Release.id == release_id)
         chat = await Chat.find_one(Chat.id == release.chat_id)
         return chat
 
@@ -35,6 +35,10 @@ class Mongo:
     @staticmethod
     async def get_release(release_id: int) -> Release:
         return await Release.find_one(Release.id == release_id)
+
+    @staticmethod
+    async def get_release_by_chat_id(chat_id: int) -> Release:
+        return await Release.find_one(Release.chat_id == chat_id)
 
     @staticmethod
     async def get_nyaa_rss_conf() -> NyaaRssConf:
@@ -81,12 +85,6 @@ class Mongo:
             await Chat.find_one(Chat.id == chat_id).update(
                 Set({f"config.{key}": val})
             )
-
-    @staticmethod
-    async def update_ep_info(release: Release, episode: Episode, **kwargs) -> None:
-        ep_num = str(episode.number)
-        for key, val in kwargs.items():
-            await release.update(Set({f"episodes.{ep_num}.{key}": val}))
 
     @staticmethod
     async def update_nyaa_rss_conf(**kwargs) -> None:
