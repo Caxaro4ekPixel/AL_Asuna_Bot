@@ -10,7 +10,7 @@ from asuna_bot.db.odm import Chat
 from asuna_bot.api.models import NyaaTorrent
 from .rss_parser import rss_to_json
 
-from anilibria import TitleEpisode
+from anilibria import TitleUpdate
 from asuna_bot.main.anilibria_client import al_client
 
 class WsRssObserver:
@@ -29,7 +29,7 @@ class WsRssObserver:
         self._config : NyaaRssConf
 
         # Это декораторы websocket event
-        al_client.on(TitleEpisode)(self._ws_episode_update)
+        al_client.on(TitleUpdate)(self._ws_title_update)
 
     async def _register_chats(self):
         all_ongoings = await db.get_all_ongoing_chats()
@@ -46,10 +46,11 @@ class WsRssObserver:
             chat: ChatController
             await chat.nyaa_update(torrents)
         
-    async def _ws_episode_update(self, event: TitleEpisode) -> None:
-        for chat in self.chats.values():
-            chat: ChatController
-            await chat.episode_update(event)
+    async def _ws_title_update(self, event: TitleUpdate) -> None:
+        if event.diff.get("updated"):
+            for chat in self.chats.values():
+                chat: ChatController
+                await chat.release_up(event)
             
     async def _rss_request(self, url: str, params: dict, limit):
         try:
