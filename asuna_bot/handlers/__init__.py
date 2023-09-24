@@ -5,6 +5,7 @@ from .start import start_router
 from .supergroup import supergroup_router
 from .submitters import submitter_router
 from .time import time_router
+from .settings import settings_router
 
 __routers__ = (
     dev_router, 
@@ -14,4 +15,5 @@ __routers__ = (
     supergroup_router,
     submitter_router,
     time_router,
+    settings_router,
 )

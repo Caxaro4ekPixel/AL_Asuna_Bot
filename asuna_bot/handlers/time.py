@@ -21,7 +21,7 @@ time_router.message.filter(AllowedUserFilter(), Command("time"))
 @time_router.message(ChatTypeFilter(chat_type="supergroup"))
 async def cmd_time(message: types.Message):
     chat_controller = observer.chats.get(message.chat.id)
-    chat_controller._release.id
+
     title = await libria.get_title(chat_controller._release.id)
     td = await chat_controller.check_time(title)
 
