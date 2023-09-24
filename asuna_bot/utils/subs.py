@@ -27,14 +27,13 @@ def _sort_by_time(parsed_lines):
     return parsed_lines['start']
 
 def convert_to_srt(file_in_bytes: bytes, file_name) -> BufferedInputFile:
-    # raw_lines = file_in_bytes.decode('utf-8').split('\n')
     raw_lines = file_in_bytes.decode('utf-8').split('\n')
     # remove everything but Dialogue
     lines = [line for line in raw_lines if line.startswith('Dialogue: ')]
 
     parsed_lines = []
     for line in lines:
-        l = line.split(',')
+        l = line.split(',')  # noqa: E741
         parsed_lines.append({
             'start': l[1].replace(".", ","), 
             'end': l[2].replace(".", ","),
