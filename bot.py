@@ -1,8 +1,9 @@
 import asyncio
+import sys
 from aiogram import Bot, Dispatcher
 from asuna_bot.handlers import __routers__
 from asuna_bot.config import CONFIG
-
+from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
@@ -44,9 +45,8 @@ async def rss_coro() -> None:
 
 
 if __name__ == "__main__":
-    from asuna_bot.utils import logging
 
-    logging.setup()
+    logger.add(sys.stderr, format="{time} {level} {message}", filter="my_module", level="DEBUG")
 
     loop = asyncio.get_event_loop()
 

@@ -5,7 +5,8 @@ import sys
 from loguru import logger
 
 def pp(object):
-    return pprint.pformat(object, indent=4, width=60, depth=4, compact=True, sort_dicts=True, underscore_numbers=True)
+    return pprint.pformat(object, indent=4, width=60, depth=4, compact=True, 
+                          sort_dicts=True, underscore_numbers=True)
 
 
 class InterceptHandler(logging.Handler):
@@ -28,4 +29,4 @@ class InterceptHandler(logging.Handler):
 # noinspection PyArgumentList
 def setup():
     logger.add(sys.stderr, format="{time} {level} {message}", filter="my_module", level="DEBUG")
-    logging.basicConfig(handlers=[InterceptHandler()], level=logging.DEBUG)
+    # logging.basicConfig(handlers=[InterceptHandler()], level=logging.DEBUG)
