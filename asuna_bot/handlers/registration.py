@@ -19,11 +19,11 @@ admin_router.message.filter(AdminFilter(), ChatTypeFilter("private"))
 @admin_router.message()
 async def accept_user(msg: Message):
     if msg.forward_from:
-        username = msg.forward_from.username
-        user_id = msg.forward_from.id
-        full_name = msg.forward_from.full_name        
-        await db.add_user(user_id, full_name, username)
-        await msg.answer(f"{full_name} / @{username}\nДобавлен в базу! 👍")
+        user_id = msg.forward_from.id    
+        
+        await msg.answer(f"Выберите роль для {user_id}")
+        #TODO кнопки с ролями
+        # await db.add_user(user_id)
         return
     
     if msg.forward_sender_name:
