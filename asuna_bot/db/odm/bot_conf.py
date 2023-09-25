@@ -1,6 +1,7 @@
 from typing import List
 from beanie import Document
 from pydantic import BaseModel
+from datetime import date, datetime, time, timedelta
 
 class NyaaRssConf(BaseModel):
     running    : bool = True
@@ -15,6 +16,7 @@ class NyaaRssConf(BaseModel):
 class AlApiConf(BaseModel):
     site_url : str = "https://www.anilibria.tv/release/"
     back_url : str = "https://backoffice.anilibria.top/resources/anime__releases/"
+    last_update : int = 1695034197
 
 class BotConfig(Document):
     timezone : str = "Europe/Moscow"
@@ -25,4 +27,4 @@ class BotConfig(Document):
 
     class Settings:
         name = "bot_config"
-        keep_nulls = False
+        keep_nulls = True
