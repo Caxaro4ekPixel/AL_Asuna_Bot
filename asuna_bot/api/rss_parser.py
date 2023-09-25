@@ -17,7 +17,7 @@ def parse_quality(full_str: str) -> str or None:
 
 
 def parse_title(full_title: str) -> str:
-    title = re.search(r"\](.*?) -", full_title)
+    title = re.search(r"\](.*?) - (\d+)", full_title)
     if title:
         return title.group(1).strip()
     else:

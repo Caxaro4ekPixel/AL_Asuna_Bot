@@ -34,16 +34,17 @@ class ChatController:
         self._last_msg: Message
 
         self.chat_id = self._chat.id
+        # self.chat_id = CONFIG.bot.admin_chat
 
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
             s1 = self._release.en_title.lower()
             s2 = torrent.title.lower()
-
+            
             if self._chat.config.submitter in torrent.submitter:
                 ratio = SequenceMatcher(None, s1, s2).ratio()
-
+                log.debug(f"{s1} <<<AND>>> {s2} with ratio={ratio}")
                 if ratio > 0.70:
                     self._torrents.append(torrent)
 
