@@ -12,8 +12,9 @@ from asuna_bot.config import CONFIG
 from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
+from aiogram.exceptions import TelegramBadRequest
 from pytz import timezone
-from anilibria import TitleUpdate, Title
+from anilibria import Title
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
@@ -32,8 +33,8 @@ class ChatController:
         self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
         self._last_msg: Message
 
-        # self.chat_id = self._chat.id
-        self.chat_id = CONFIG.bot.admin_chat
+        self.chat_id = self._chat.id # Для прода
+        # self.chat_id = CONFIG.bot.admin_chat # Для теста
 
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
@@ -51,8 +52,11 @@ class ChatController:
             await self._add_new_episode()
             await self._send_message_to_chat()
             await self._send_torrents_to_chat()
-            await self._bot.pin_chat_message(self.chat_id, self._last_msg.message_id)
-            await self._del_last_srvc_msg()
+            try:
+                await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
+                await self._del_last_srvc_msg()
+            except TelegramBadRequest:
+                pass
             self._torrents.clear()
 
     async def release_up(self, titles: list) -> None:
