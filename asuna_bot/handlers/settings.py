@@ -10,10 +10,10 @@ from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
 
 from anilibria import AniLibriaClient
-from asuna_bot.api import WsRssObserver
+from asuna_bot.api import ApiRssObserver
 
 libria = AniLibriaClient()
-observer = WsRssObserver()
+observer = ApiRssObserver()
 settings_router = Router()
 settings_router.message.filter(AllowedUserFilter())
 

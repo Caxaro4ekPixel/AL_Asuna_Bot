@@ -23,4 +23,4 @@ class ALClient(AniLibriaClient):
                 await self.close()
                 break
 
-al_client = ALClient(logging=True)
+al_client = ALClient(logging=False)

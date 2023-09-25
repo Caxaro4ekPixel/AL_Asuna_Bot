@@ -14,7 +14,7 @@ from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
 from pytz import timezone
-from anilibria import TitleUpdate, Title
+from anilibria import Title
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
@@ -33,9 +33,8 @@ class ChatController:
         self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
         self._last_msg: Message
 
-        self.chat_id = self._chat.id
-        # self.chat_id = CONFIG.bot.admin_chat
-
+        self.chat_id = self._chat.id # Для прода
+        # self.chat_id = CONFIG.bot.admin_chat # Для теста
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
@@ -55,31 +54,41 @@ class ChatController:
             try:
                 await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
                 await self._del_last_srvc_msg()
-            except TelegramBadRequest as err:
+            except TelegramBadRequest:
                 pass
             self._torrents.clear()
 
-    async def release_up(self, event: TitleUpdate) -> None:
-        if (event.title.id == self._release.id):
+    async def release_up(self, titles: list) -> None:
+        for title in titles:
+            if int(title["id"]) == self._release.id:
+                
+                try:
+                    ep = list(self._release.episodes)[-1]
+                    self._ep = self._release.episodes.get(ep)
+                except Exception as ex:
+                    log.error(ex)
+                    log.error("Не нашли эпизода в БД")
+                    return
 
-            ep = list(self._release.episodes)[-1]
-            self._ep = self._release.episodes.get(ep)
+                td = datetime.fromtimestamp(float(title["updated"])) - self._ep.date
 
-            td = datetime.fromtimestamp(event.title.updated) - self._ep.date
-
-            self._ep.overall_time = int(td.total_seconds())
-            await self._release.save()
-
-            await self._bot.send_message(
-                self.chat_id,
-                f"{event.title.player.episodes.last}-я серия вышла за:\n"
-                f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
-            )
+                self._ep.overall_time = int(td.total_seconds())
+                await self._release.save()
+                last_ep = title["player"]["series"]["last"]
+                await self._bot.send_message(
+                    self.chat_id,
+                    f"{last_ep}-я серия вышла за:\n"
+                    f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
+                )
     
     async def check_time(self, title: Title) -> None:
-
-        ep = list(self._release.episodes)[-1]
-        self._ep = self._release.episodes.get(ep)
+        try:
+            ep = list(self._release.episodes)[-1]
+            self._ep = self._release.episodes.get(ep)
+        except Exception as ex:
+            log.error(ex)
+            log.error("Не нашли эпизода в БД")
+            return False
 
         td = datetime.fromtimestamp(title.updated) - self._ep.date
 
