@@ -27,4 +27,3 @@ class Chat(Document):
     class Settings:
         name = "chats"
         keep_nulls = True
-        

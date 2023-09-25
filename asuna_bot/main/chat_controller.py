@@ -194,7 +194,7 @@ class ChatController:
     async def _send_torrents_to_chat(self):
         session = ClientSession()
         for torrent in self._torrents:
-            response = await session.get(torrent.file_url, allow_redirects=True)
+            response = await session.get(str(torrent.file_url), allow_redirects=True)
 
             title = '{:.20}'.format(self._release.ru_title) + "..." \
                 if len(self._release.ru_title) >= 20 else self._release.ru_title
