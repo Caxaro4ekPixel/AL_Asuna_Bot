@@ -11,4 +11,4 @@ class ChatGPT(Document):
     
     class Settings:
         name = "chat_gpt"
-        keep_nulls = False
+        keep_nulls = True

@@ -94,3 +94,10 @@ class Mongo:
             await BotConfig.find({}).update(
                 Set({f"nyaa_rss.{key}": val})
             )
+
+    @staticmethod
+    async def update_al_api_conf(**kwargs) -> None:
+        for key, val in kwargs.items():
+            await BotConfig.find({}).update(
+                Set({f"al_api.{key}": val})
+            )

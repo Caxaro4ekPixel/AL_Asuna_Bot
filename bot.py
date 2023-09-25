@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
 
-from asuna_bot.api import WsRssObserver
+from asuna_bot.api import ApiRssObserver
 from asuna_bot.main.anilibria_client import al_client
 
 
@@ -38,7 +38,7 @@ async def rss_coro() -> None:
     db = getattr(client, CONFIG.db.db_name)
     await init_beanie(database=db, document_models=__beanie_models__)
 
-    rss = WsRssObserver()
+    rss = ApiRssObserver()
     await rss.start_polling()
 
 

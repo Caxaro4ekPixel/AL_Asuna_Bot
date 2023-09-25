@@ -10,10 +10,9 @@ from asuna_bot.db.odm import Chat
 from asuna_bot.api.models import NyaaTorrent
 from .rss_parser import rss_to_json
 
-from anilibria import TitleUpdate
-from asuna_bot.main.anilibria_client import al_client
+from anilibria import AniLibriaClient
 
-class WsRssObserver:
+class ApiRssObserver:
     __instance = None
 
     def __new__(cls):
@@ -27,9 +26,8 @@ class WsRssObserver:
         self._session = ClientSession()
         self._running : bool = True
         self._config : NyaaRssConf
+        self._al_client = AniLibriaClient(logging=True)
 
-        # Это декораторы websocket event
-        al_client.on(TitleUpdate)(self._ws_title_update)
 
     async def _register_chats(self):
         all_ongoings = await db.get_all_ongoing_chats()
@@ -46,11 +44,10 @@ class WsRssObserver:
             chat: ChatController
             await chat.nyaa_update(torrents)
         
-    async def _ws_title_update(self, event: TitleUpdate) -> None:
-        if event.diff.get("updated"):
+    async def _push_title_update(self, titles: list) -> None:
             for chat in self.chats.values():
                 chat: ChatController
-                await chat.release_up(event)
+                await chat.release_up(titles)
             
     async def _rss_request(self, url: str, params: dict, limit):
         try:
@@ -68,9 +65,20 @@ class WsRssObserver:
         
         return json
 
+    async def _http_request(self, url: str, params: dict) -> list:
+        try:
+            response = await self._session.get(url, params=params, timeout=30)
+            json = await response.json()
+        except Exception as ex:
+            log.error(ex)
+            return None
+        
+        return json
+
+
     async def start_polling(self):
         """Поллинг rss ленты"""
-        log.info("Start Nyaa.si RSS polling")
+        log.info("Start Nyaa.si RSS AND AniLibria updates polling")
         while self._running:
             self._config = await db.get_nyaa_rss_conf()
             self._build_params_str()
@@ -87,7 +95,7 @@ class WsRssObserver:
             rss_last_id = parsed_rss[0].get("id")
 
             if rss_last_id <= conf.last_id:
-                log.info("Нет новых торрентов")
+                log.info("Нет новых торрентов на няшке")
             else:
                 torrents = [
                     NyaaTorrent(**torrent) 
@@ -97,7 +105,26 @@ class WsRssObserver:
                 await self._push_rss_update(torrents) # Делаем пуш чатам
                 await db.update_nyaa_rss_conf(last_id=rss_last_id)
 
+
+            al_conf = await db.get_al_conf()
+            url = "http://api.anilibria.tv/v2/getUpdates"
+            params = {
+                "since": al_conf.last_update,
+                "limit": 40,
+                "filter": "id,updated,player.series.last"
+            }
+            titles = await self._http_request(url, params)
+            if titles:
+                last_update = titles[0]["updated"]
+                if last_update > al_conf.last_update:
+                    await self._push_title_update(titles)
+                    await db.update_al_api_conf(last_update=last_update)
+                else:
+                    log.info("Нет новых апдейтов на сайте")
+
             await asyncio.sleep(conf.interval)
+
+
 
     def _build_params_str(self) -> None:
         if self._config.submitters:
