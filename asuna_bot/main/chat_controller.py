@@ -60,9 +60,11 @@ class ChatController:
 
     async def release_up(self, titles: list) -> None:
         for title in titles:
+            log.debug(title)
             if int(title["id"]) == self._release.id:
-                
+                log.debug("Есть совпадение")
                 try:
+                    log.debug("Попытка найти эпизод в Бд")
                     ep = list(self._release.episodes)[-1]
                     self._ep = self._release.episodes.get(ep)
                 except Exception as ex:
@@ -70,11 +72,16 @@ class ChatController:
                     log.error("Не нашли эпизода в БД")
                     return
 
+                log.debug("Нашли EP:")
+                log.debug(self._ep.json())
                 td = datetime.fromtimestamp(float(title["updated"])) - self._ep.date
-
+                log.debug(f"timedelta={td}")
                 self._ep.overall_time = int(td.total_seconds())
                 await self._release.save()
+                log.debug("Обновили overall_time в БД")
                 last_ep = title["player"]["series"]["last"]
+                log.debug(f"last_ep={last_ep}")
+                log.debug(f"Отправляем сообщение в чат {self.chat_id}")
                 await self._bot.send_message(
                     self.chat_id,
                     f"{last_ep}-я серия вышла за:\n"

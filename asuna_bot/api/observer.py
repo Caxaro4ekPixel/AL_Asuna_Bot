@@ -47,6 +47,7 @@ class ApiRssObserver:
     async def _push_title_update(self, titles: list) -> None:
             for chat in self.chats.values():
                 chat: ChatController
+                log.debug("_push_title_update")
                 await chat.release_up(titles)
             
     async def _rss_request(self, url: str, params: dict, limit):
@@ -107,6 +108,7 @@ class ApiRssObserver:
 
 
             al_conf = await db.get_al_conf()
+            log.debug(f"al_conf={al_conf.json()}")
             url = "http://api.anilibria.tv/v2/getUpdates"
             params = {
                 "since": al_conf.last_update,
@@ -114,8 +116,10 @@ class ApiRssObserver:
                 "filter": "id,updated,player.series.last"
             }
             titles = await self._http_request(url, params)
+            log.debug(f"titles={titles}")
             if titles:
                 last_update = titles[0]["updated"]
+                log.debug(f"last_update={last_update}")
                 if last_update > al_conf.last_update:
                     await self._push_title_update(titles)
                     await db.update_al_api_conf(last_update=last_update)

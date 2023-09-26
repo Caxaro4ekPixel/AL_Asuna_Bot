@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from environs import Env
 
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 
 @dataclass
 class DBConf:
