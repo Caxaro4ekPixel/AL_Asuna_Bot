@@ -10,7 +10,6 @@ class Release(Document):
     code: str
     en_title: str
     ru_title: str
-    last_update: int = 0
     is_ongoing: bool = True
     is_top: bool = False
     is_commer: bool = False
