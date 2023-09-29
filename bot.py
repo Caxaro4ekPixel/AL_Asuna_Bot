@@ -29,7 +29,7 @@ async def rss_coro() -> None:
 
 
 if __name__ == "__main__":
-    logger.add(sys.stderr, format="{time} {level} {message}", filter="my_module", level="DEBUG")
+    logger.add("log.txt")
 
     loop = asyncio.get_event_loop()
     gather = asyncio.gather(
