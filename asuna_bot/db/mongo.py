@@ -7,7 +7,7 @@ from .odm import (
     AlApiConf
 )
 from beanie.operators import Set
-
+from loguru import logger as log
 
 class Mongo:
 
@@ -31,8 +31,12 @@ class Mongo:
 
     @staticmethod
     async def get_all_ongoing_chats() -> List:
-        return await Chat.find(Chat.release.is_ongoing == True,  # noqa: E712
-                               fetch_links=True).to_list()
+        try:
+            return await Chat.find(Chat.release.is_ongoing == True,  # noqa: E712
+                                   fetch_links=True).to_list()
+        except Exception as ex:
+            log.error("DB problem!")
+            log.error(ex)
 
     @staticmethod
     async def get_release(release_id: int) -> Release:
@@ -73,8 +77,9 @@ class Mongo:
 
     @staticmethod
     async def add_episode(release: Release, episode: Episode) -> None:
-        ep_num = str(episode.number)
-        await release.update(Set({"episodes": {ep_num: episode}}))
+        ep_num = str(episode.number).replace(".0", "").replace(".", "_")
+        await release.update(Set({f"episodes.{ep_num}": episode}))
+
 
     @staticmethod
     async def add_user(id: int, name: str, role: list[str]) -> None:

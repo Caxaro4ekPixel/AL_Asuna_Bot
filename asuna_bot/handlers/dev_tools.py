@@ -1,23 +1,51 @@
 """
 DEV TOOLS:
-- отправить id чата
+/id - отправить инфу о чате из БД
 """
 
-from aiogram import Router, html
+import json
+from aiogram import Router, html, Bot
 from aiogram.types import Message
+from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AdminFilter
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
+from asuna_bot.db.odm import Chat, Release, Episode
+from asuna_bot.config import CONFIG
+from datetime import datetime
 
 dev_router = Router()
 dev_router.message.filter(AdminFilter())
+bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
 
 
 @dev_router.message(Command("id"))
 async def send_chat_id(msg: Message):
-    await msg.reply(
-        f"""
-        chat_name: {html.code(msg.chat.full_name)}
-        chat_id: {html.code(msg.chat.id)}
-        user_id: {html.code(msg.from_user.id)}
-        """
+    db_chat = await Chat.get_by_id(msg.chat.id)
+    db_release = await Release.get_by_chat_id(msg.chat.id)
+
+    chat_obj = json.loads(db_chat.model_dump_json())
+    chat_formatted_str = json.dumps(chat_obj, indent=2, ensure_ascii=False)
+
+    release_obj = json.loads(db_release.model_dump_json())
+    release_formatted_str = json.dumps(release_obj, indent=2, ensure_ascii=False)
+    text = (
+        f"<u>chat_name:</u> {html.code(msg.chat.full_name)}\n" \
+        f"<u>chat_id:</u> {html.code(msg.chat.id)}\n" \
+        f"<u>db_chat:</u> {html.code(chat_formatted_str)}\n" \
+        f"<u>db_release:</u> {html.code(release_formatted_str)}\n"
     )
+    await bot.send_message(CONFIG.bot.admin_chat, text)
+
+
+@dev_router.message(Command("add"))
+async def add_ep_to_release(msg: Message, command: CommandObject):
+    ep_num = float(command.args)
+    db_release = await Release.get_by_chat_id(msg.chat.id)
+    new_ep = Episode(
+        number=ep_num,
+        status="test",
+        date=datetime.now(),
+        deadline_at=datetime.now()
+    )
+    await db.add_episode(db_release, new_ep)
+

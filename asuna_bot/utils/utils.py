@@ -1,41 +1,47 @@
-import difflib
-import re
 
+from datetime import timedelta
+import json
+import random
 
-def name_week_day(week_day):
-    day = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"}
-    return day[week_day]
+def craft_time_str(td: timedelta) -> str:
+    match td.days:
+        case 0: 
+            days = ""
+        case 1 | 21 | 31 | 41:
+            days = f"{td.days} день"
+        case 2 | 3 | 4 | 22 | 23 | 24 | 32 | 33 | 34:
+            days = f"{td.days} дня"
+        case _:
+            days = f"{td.days} дней"
 
+    h = int(td.seconds // 3600)
+    match h:
+        case 0: 
+            hours = ""
+        case 1 | 21:
+            hours = f"{h} час"
+        case 2 | 3 | 4 | 22 | 23:
+            hours = f"{h} часа"
+        case _:
+            hours = f"{h} часов"
 
-def name_month(mon_day):
-    month_name = {1: 'янв', 2: 'фев', 3: 'мар', 4: 'апр', 5: 'май', 6: 'июн', 7: 'июл', 8: 'авг', 9: 'сен', 10: 'окт', 11: 'ноя', 12: 'дек'}
-    return month_name[mon_day]
+    m = int((td.seconds // 60) % 60)
+    match m:
+        case 0:
+            minutes = ""
+        case 1 | 21 | 31 | 41 | 51:
+            minutes = f"{m} минуту"
+        case 2 | 3 | 4 | 22 | 23 | 24 | 32 | 33 | 34 | 42 | 43 | 44 | 52 | 53 | 54:
+            minutes = f"{m} минуты"
+        case _:
+            minutes = f"{m} минут"
+    
+    return f"{days} {hours} {minutes}".strip()
 
+def random_kaomoji() -> str:
+    with open('emoticon_dict.json', 'r', encoding='utf-8') as f:
+        emoticon_dict = json.load(f)
+        kaomoji = list(emoticon_dict.keys())
 
-def similarity(s1, s2):
-    normalized1 = s1.lower()
-    normalized2 = s2.lower()
-    matcher = difflib.SequenceMatcher(None, normalized1, normalized2)
-    return matcher.ratio()
-
-
-def normolize_text(s):
-    a = []
-    for i in re.sub(r'\(.*\)', '', re.sub(r'\[[^\]]+\]', '', s)).split(' '):
-        if i != '':
-            a.append(i)
-    b = []
-    for i in a:
-        if not re.search(r'\d', i) and '.mkv' not in i and '-' != i:
-            b.append(i)
-    nor_s = (' '.join(i for i in b))
-    return nor_s
-
-
-def convert_to_preferred_format(sec):
-    sec = sec % (24 * 3600)
-    hour = sec // 3600
-    sec %= 3600
-    min = sec // 60
-    sec %= 60
-    return "%02d:%02d:%02d" % (hour, min, sec)
+    rnd = random.randint(0, len(kaomoji) - 1)
+    return kaomoji[rnd]

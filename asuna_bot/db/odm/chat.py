@@ -3,7 +3,6 @@ from typing import Optional
 from pydantic import BaseModel
 from .release import Release
 
-
 class ChatConfig(BaseModel):
     submitter          : str  = "[SubsPlease]"
     show_alerts        : bool = True
@@ -26,4 +25,9 @@ class Chat(Document):
     
     class Settings:
         name = "chats"
-        keep_nulls = True
+
+        
+    @classmethod
+    async def get_by_id(cls, id: int) -> Optional["Chat"]:
+        return await cls.find_one(cls.id == id)
+    

@@ -27,4 +27,3 @@ class BotConfig(Document):
 
     class Settings:
         name = "bot_config"
-        keep_nulls = True

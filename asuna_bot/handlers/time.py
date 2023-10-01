@@ -5,12 +5,13 @@
 
 from aiogram import Router, types
 from aiogram.filters import Command
-from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
-
-from anilibria import AniLibriaClient
+from asuna_bot.db.odm import Release
+from asuna_bot.utils import craft_time_str
 from asuna_bot.api import ApiRssObserver
+from anilibria import AniLibriaClient
+
 
 libria = AniLibriaClient()
 observer = ApiRssObserver()
@@ -20,14 +21,14 @@ time_router.message.filter(AllowedUserFilter(), Command("time"))
 
 @time_router.message(ChatTypeFilter(chat_type="supergroup"))
 async def cmd_time(message: types.Message):
-    chat_controller = observer.chats.get(message.chat.id)
+    release = await Release.get_by_chat_id(message.chat.id)
+    title = await libria.get_title(release.id)
 
-    title = await libria.get_title(chat_controller._release.id)
-    td = await chat_controller.check_time(title)
+    td = await release.check_time(title)
+    time = craft_time_str(td)
     if td:
         await message.answer(
-                f"{title.player.episodes.last}-я серия вышла за:\n"
-                f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
+                f"{title.player.episodes.last}-я серия вышла за:\n {time}"
             )
     else:
         await message.answer("Неудалось засечь время для последнего эпизода :(")

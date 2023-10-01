@@ -1,5 +1,4 @@
 import asyncio
-import sys
 from aiogram import Bot, Dispatcher
 from asuna_bot.handlers import __routers__
 from asuna_bot.config import CONFIG

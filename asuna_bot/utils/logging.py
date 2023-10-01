@@ -29,4 +29,5 @@ class InterceptHandler(logging.Handler):
 # noinspection PyArgumentList
 def setup():
     logger.add(sys.stderr, format="{time} {level} {message}", filter="my_module", level="DEBUG")
+    logger.add("log.txt", format="{time} {level} {message}", filter="my_module", level="DEBUG")
     # logging.basicConfig(handlers=[InterceptHandler()], level=logging.DEBUG)

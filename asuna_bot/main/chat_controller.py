@@ -1,6 +1,4 @@
 import asyncio
-import json
-import random
 from typing import List
 from aiohttp import ClientSession
 from loguru import logger as log
@@ -15,6 +13,7 @@ from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
 from pytz import timezone
 from anilibria import Title
+from asuna_bot.utils import craft_time_str, random_kaomoji
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
@@ -74,32 +73,33 @@ class ChatController:
 
                 log.debug("Нашли EP:")
                 log.debug(self._ep.json())
-                td = datetime.fromtimestamp(float(title["updated"])) - self._ep.date
+                uploaded_at = datetime.fromtimestamp(float(title["updated"]))
+                td = uploaded_at - self._ep.date
+
+                log.debug(f"uploaded_at={uploaded_at}")
                 log.debug(f"timedelta={td}")
+
+                time_str = craft_time_str(td)
+                log.debug(f"Вышла за: {time_str}")
+                
                 self._ep.overall_time = int(td.total_seconds())
+                self._ep.uploaded_at = uploaded_at
+                self._ep.status = f"Вышла за {time_str}"
+                
                 await self._release.save()
-                log.debug("Обновили overall_time в БД")
+
+                log.debug("Обновили overall_time и uploaded_at в БД")
                 last_ep = title["player"]["series"]["last"]
                 log.debug(f"last_ep={last_ep}")
                 log.debug(f"Отправляем сообщение в чат {self.chat_id}")
+
+                
+                
                 await self._bot.send_message(
                     self.chat_id,
-                    f"{last_ep}-я серия вышла за:\n"
-                    f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
+                    f"{last_ep}-я серия вышла за:\n {time_str}"
                 )
     
-    async def check_time(self, title: Title) -> None:
-        try:
-            ep = list(self._release.episodes)[-1]
-            self._ep = self._release.episodes.get(ep)
-        except Exception as ex:
-            log.error(ex)
-            log.error("Не нашли эпизода в БД")
-            return False
-
-        td = datetime.fromtimestamp(title.updated) - self._ep.date
-
-        return td
 
     async def _add_new_episode(self):
         torrent = self._torrents[0]
@@ -143,15 +143,6 @@ class ChatController:
 
         return fhd, hd, sd
 
-    @staticmethod
-    def _random_kaomoji() -> str:
-        with open('emoticon_dict.json', 'r', encoding='utf-8') as f:
-            emoticon_dict = json.load(f)
-            kaomoji = list(emoticon_dict.keys())
-
-        rnd = random.randint(0, len(kaomoji) - 1)
-        return kaomoji[rnd]
-
     def _craft_message_text(self) -> str:
         fhd, hd, sd = self._dispatch_torrents()
         rel = self._release
@@ -186,7 +177,7 @@ class ChatController:
             f"﴾{html.link('❤️Сайт❤️', SITE_URL + rel.code + '.html')}  ‖  {html.link('🖤Админка🖤', BACK_URL + str(rel.id))}﴿",
             "",
             f"⏳<i>Дедлайн</i>:  <b>{deadline} МСК</b>",
-            html.spoiler(self._random_kaomoji())
+            html.spoiler(random_kaomoji())
         ]
 
         return "\n".join(text1 + text2 + text3)
@@ -211,7 +202,7 @@ class ChatController:
             bytes = await response.read()
             file = BufferedInputFile(bytes, filename)
             await self._bot.send_document(self.chat_id, file)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         await session.close()
 
     async def _del_last_srvc_msg(self):

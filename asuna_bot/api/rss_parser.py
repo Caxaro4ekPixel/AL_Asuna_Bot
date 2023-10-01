@@ -24,17 +24,20 @@ def parse_title(full_title: str) -> str:
          return full_title
 
 
-def parse_serie(full_str: str) -> float:
+def parse_serie(full_str: str) -> float | str:
     ep = "00"
     if full_str.lower().startswith("[subsplease]"):
         ep = full_str.split(" (")[0].split(" ")[-1]
-        if not ep.isdigit():
-             ep = re.findall(r" \d+", full_str)[-1]
+
     if full_str.lower().startswith("[erai-raws]"):
         ep = full_str.split(" [")[0].split(" ")[-1]
 
+    if not ep.isdigit():
+            ep = re.findall(r" \d+", full_str)[-1]
+
     if ep.startswith("0"):
         return float(ep[1:].strip())
+    
     return float(ep)
 
 
