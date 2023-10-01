@@ -40,7 +40,14 @@ class ChatController:
             s1 = self._release.en_title.lower()
             s2 = torrent.title.lower()
             
-            if self._chat.config.submitter in torrent.submitter:
+            sub = self._chat.config.submitter
+            if sub.startswith("["):
+                pass
+            else:
+                sub = "["+ sub + "]"
+            log.debug(f"sub={sub}")
+
+            if sub in torrent.submitter:
                 ratio = SequenceMatcher(None, s1, s2).ratio()
                 log.debug(f"{s1} <<<AND>>> {s2} with ratio={ratio}")
                 if ratio > 0.70:

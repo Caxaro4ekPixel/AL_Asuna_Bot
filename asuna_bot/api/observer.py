@@ -31,10 +31,10 @@ class ApiRssObserver:
 
     async def _register_chats(self):
         all_ongoings = await db.get_all_ongoing_chats()
+        self.chats.clear()
         for chat in all_ongoings:
             chat: Chat
-            if chat.id not in self.chats.keys():
-                await self._register_chat(chat)
+            await self._register_chat(chat)
                         
     async def _register_chat(self, chat):
         self.chats[chat.id] = ChatController(chat)
