@@ -3,18 +3,16 @@
 
 """
 
-from aiogram import Router, types
+from aiogram import Router, types, html
 from aiogram.filters import Command
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
 from asuna_bot.db.odm import Release
 from asuna_bot.utils import craft_time_str
-from asuna_bot.api import ApiRssObserver
 from anilibria import AniLibriaClient
 
 
 libria = AniLibriaClient()
-observer = ApiRssObserver()
 time_router = Router()
 time_router.message.filter(AllowedUserFilter(), Command("time"))
 
@@ -28,7 +26,7 @@ async def cmd_time(message: types.Message):
     time = craft_time_str(td)
     if td:
         await message.answer(
-                f"{title.player.episodes.last}-я серия вышла за:\n {time}"
+                f"{title.player.episodes.last}-я серия вышла за:\n{html.bold(time)}"
             )
     else:
         await message.answer("Неудалось засечь время для последнего эпизода :(")

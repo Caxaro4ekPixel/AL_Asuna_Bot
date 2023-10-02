@@ -36,7 +36,7 @@ def craft_time_str(td: timedelta) -> str:
         case _:
             minutes = f"{m} минут"
     
-    return f"{days} {hours} {minutes}".strip()
+    return f"{days} {hours} {minutes}".strip().replace("  ", " ")
 
 def random_kaomoji() -> str:
     with open('emoticon_dict.json', 'r', encoding='utf-8') as f:

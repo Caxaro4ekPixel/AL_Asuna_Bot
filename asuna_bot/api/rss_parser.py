@@ -17,27 +17,19 @@ def parse_quality(full_str: str) -> str or None:
 
 
 def parse_title(full_title: str) -> str:
-    title = re.search(r"\](.*?) - (\d+)", full_title)
+    title = re.search(r"\](.*?) - (\d+) \[", full_title)
     if title:
         return title.group(1).strip()
     else:
-         return full_title
+         title = re.search(r"\](.*?)\[", full_title)
+         return title.group(1).strip()
 
 
-def parse_serie(full_str: str) -> float | str:
-    ep = "00"
-    if full_str.lower().startswith("[subsplease]"):
-        ep = full_str.split(" (")[0].split(" ")[-1]
-
-    if full_str.lower().startswith("[erai-raws]"):
-        ep = full_str.split(" [")[0].split(" ")[-1]
-
+def parse_serie(full_title: str) -> float | str:
+    ep_str = re.search(r"(\d+) (\(|\[)", full_title)
+    ep = ep_str.group(1).strip()
     if not ep.isdigit():
-            ep = re.findall(r" \d+", full_str)[-1]
-
-    if ep.startswith("0"):
-        return float(ep[1:].strip())
-    
+            ep = 0
     return float(ep)
 
 

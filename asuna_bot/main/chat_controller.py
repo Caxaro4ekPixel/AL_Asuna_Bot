@@ -12,7 +12,6 @@ from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
 from pytz import timezone
-from anilibria import Title
 from asuna_bot.utils import craft_time_str, random_kaomoji
 
 #####################TODO Брать это из БД  ####################
@@ -79,7 +78,7 @@ class ChatController:
                     return
 
                 log.debug("Нашли EP:")
-                log.debug(self._ep.json())
+                log.debug(self._ep.model_dump_json())
                 uploaded_at = datetime.fromtimestamp(float(title["updated"]))
                 td = uploaded_at - self._ep.date
 

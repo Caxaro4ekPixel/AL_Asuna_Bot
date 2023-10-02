@@ -1,33 +1,27 @@
-import logging
-import pprint
-import sys
-
 from loguru import logger
-
-def pp(object):
-    return pprint.pformat(object, indent=4, width=60, depth=4, compact=True, 
-                          sort_dicts=True, underscore_numbers=True)
+import logging
+import inspect
+from asuna_bot.config import __version__, __logpath__
 
 
 class InterceptHandler(logging.Handler):
-    LEVELS_MAP = {
-        logging.CRITICAL: "CRITICAL",
-        logging.ERROR:    "ERROR",
-        logging.WARNING:  "WARNING",
-        logging.INFO:     "INFO",
-        logging.DEBUG:    "DEBUG",
-    }
+    def emit(self, record: logging.LogRecord) -> None:
+        # Get corresponding Loguru level if it exists.
+        level: str | int
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
 
-    def _get_level(self, record):
-        return self.LEVELS_MAP.get(record.levelno, record.levelno)
+        # Find caller from where originated the logged message.
+        frame, depth = inspect.currentframe(), 0
+        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+            frame = frame.f_back
+            depth += 1
 
-    def emit(self, record):
-        logger_opt = logger.opt(depth=6, exception=record.exc_info)
-        logger_opt.log(self._get_level(record), record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-# noinspection PyArgumentList
-def setup():
-    logger.add(sys.stderr, format="{time} {level} {message}", filter="my_module", level="DEBUG")
-    logger.add("log.txt", format="{time} {level} {message}", filter="my_module", level="DEBUG")
-    # logging.basicConfig(handlers=[InterceptHandler()], level=logging.DEBUG)
+def set_logging():
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+    logger.add(f"{__logpath__}asuna_{__version__}.log", backtrace=True, diagnose=True, rotation="50 MB")

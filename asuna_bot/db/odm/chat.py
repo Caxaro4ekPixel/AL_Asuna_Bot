@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from .release import Release
 
 class ChatConfig(BaseModel):
-    submitter          : str  = "[SubsPlease]"
+    submitter          : str  = "[Erai-raws]"
     show_alerts        : bool = True
     show_fhd           : bool = True
     show_hd            : bool = True
@@ -26,8 +26,11 @@ class Chat(Document):
     class Settings:
         name = "chats"
 
-        
     @classmethod
-    async def get_by_id(cls, id: int) -> Optional["Chat"]:
-        return await cls.find_one(cls.id == id)
-    
+    async def get_by_id(cls, chat_id: int) -> Optional["Chat"]:
+        return await cls.find_one(cls.id == chat_id)
+
+    @classmethod
+    async def change_settings(cls, chat_id: int, key: str, val: bool | str) -> None:
+        chat = await cls.find_one(cls.id == chat_id)
+        await chat.set({f"config.{key}": val})

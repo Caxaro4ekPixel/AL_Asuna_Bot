@@ -1,17 +1,21 @@
 """
 DEV TOOLS:
 /id - отправить инфу о чате из БД
+/add - добавляет пустой эпизод в БД
+/log - скидывает лог в админский чат 
 """
 
 import json
 from aiogram import Router, html, Bot
-from aiogram.types import Message
+from aiogram.types import Message, FSInputFile
 from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AdminFilter
 from aiogram.filters import Command, CommandObject
 from asuna_bot.db.odm import Chat, Release, Episode
-from asuna_bot.config import CONFIG
+from asuna_bot.config import CONFIG, __logpath__
 from datetime import datetime
+import os
+import asyncio
 
 dev_router = Router()
 dev_router.message.filter(AdminFilter())
@@ -49,3 +53,10 @@ async def add_ep_to_release(msg: Message, command: CommandObject):
     )
     await db.add_episode(db_release, new_ep)
 
+
+@dev_router.message(Command("log"))
+async def send_log_file(msg: Message):
+    files = os.listdir(__logpath__)
+    for file in files:
+        await msg.answer_document(FSInputFile(__logpath__ + file))
+        asyncio.sleep(1)

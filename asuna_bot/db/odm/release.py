@@ -46,3 +46,9 @@ class Release(Document):
 
         td = datetime.fromtimestamp(title.updated) - ep.date
         return td
+    
+    @classmethod
+    async def set_deadline(cls, chat_id: int, days: int) -> None:
+        release = await cls.get_by_chat_id(chat_id)
+        release.days_to_work = days
+        await release.save()
