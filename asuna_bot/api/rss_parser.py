@@ -2,7 +2,7 @@ from urllib.parse import quote, urlencode
 from lxml import etree
 from dateutil.parser import parse
 import re
-
+from loguru import logger
 
 def parse_submitter(full_str: str) -> str:
     b = full_str.find("]")
@@ -17,7 +17,7 @@ def parse_quality(full_str: str) -> str or None:
 
 
 def parse_title(full_title: str) -> str:
-    title = re.search(r"\]\s*(.*?)\s*-\s*(\d+)\s*(\(|\[)", full_title)
+    title = re.search(r"\]\s*(.*?)\s*-\s*(\d+v*\d+)\s*(\(|\[)", full_title)
     if title:
         return title.group(1).strip()
     else:
@@ -26,10 +26,15 @@ def parse_title(full_title: str) -> str:
 
 
 def parse_serie(full_title: str) -> float | str:
-    ep_str = re.search(r"(\d+) (\(|\[)", full_title)
-    ep = ep_str.group(1).strip()
+    ep_str = re.search(r"(\d+v*\d+) (\(|\[)", full_title)
+    if ep_str is not None:
+        ep = ep_str.group(1).strip()
+    else:
+        return -1
+    
     if not ep.isdigit():
-        ep = 0
+        return -1
+    
     return float(ep)
 
 

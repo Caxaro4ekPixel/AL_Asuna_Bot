@@ -44,7 +44,6 @@ class ChatController:
                 pass
             else:
                 sub = "["+ sub + "]"
-            log.debug(f"sub={sub}")
 
             if sub in torrent.submitter:
                 ratio = SequenceMatcher(None, s1, s2).ratio()
@@ -99,11 +98,9 @@ class ChatController:
                 log.debug(f"last_ep={last_ep}")
                 log.debug(f"Отправляем сообщение в чат {self.chat_id}")
 
-                
-                
                 await self._bot.send_message(
                     self.chat_id,
-                    f"{last_ep}-я серия вышла за:\n {time_str}"
+                    f"{last_ep}-я серия вышла за:\n{time_str}"
                 )
     
 

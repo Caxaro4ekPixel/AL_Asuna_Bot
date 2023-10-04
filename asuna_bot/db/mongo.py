@@ -78,7 +78,7 @@ class Mongo:
     @staticmethod
     async def add_episode(release: Release, episode: Episode) -> None:
         ep_num = str(episode.number).replace(".0", "").replace(".", "_")
-        await release.update(Set({f"episodes.{ep_num}": episode}))
+        await release.update(Set({"episodes" : {ep_num : episode}}))
 
 
     @staticmethod
