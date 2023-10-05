@@ -33,6 +33,8 @@ def parse_serie(full_title: str) -> float | str:
         return -1
     
     if not ep.isdigit():
+        if 'v' in ep: 
+            return float(ep[:2])
         return -1
     
     return float(ep)
