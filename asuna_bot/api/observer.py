@@ -34,10 +34,8 @@ class ApiRssObserver:
         self.chats.clear()
         for chat in all_ongoings:
             chat: Chat
-            await self._register_chat(chat)
-                        
-    async def _register_chat(self, chat):
-        self.chats[chat.id] = ChatController(chat)
+            self.chats[chat.id] = ChatController(chat)
+  
 
     async def _push_rss_update(self, torrents) -> None:
         for chat in self.chats.values():
@@ -82,11 +80,12 @@ class ApiRssObserver:
         log.info("Start Nyaa.si RSS AND AniLibria updates polling")
         while self._running:
             self._config = await db.get_nyaa_rss_conf()
+            conf = self._config
             self._build_params_str()
 
-            conf = self._config
+            log.debug("Формируем список онгоингов...")
             await self._register_chats()
-
+            log.debug(self.chats.keys())
             parsed_rss = await self._rss_request(conf.base_url, conf.params, conf.limit)
             
             if parsed_rss is None:
