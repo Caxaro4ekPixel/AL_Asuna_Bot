@@ -16,7 +16,7 @@ class Release(Document):
     is_top: bool = False
     is_commer: bool = False
     days_to_work: Optional[int] = 4
-    episodes: Optional[Dict[str, Episode]] = None
+    episodes: Optional[Dict[str, Episode]] = {}
 
     class Settings:
         name = "releases"
