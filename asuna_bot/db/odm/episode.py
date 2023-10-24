@@ -15,5 +15,5 @@ class Episode(BaseModel):
     mix_time: Optional[int] = 0
     fix_time: Optional[int] = 0
     overall_time: Optional[int] = 0
-    uploaded_at: Optional[datetime] = None
+    uploaded_at: Optional[datetime] = 0
     team: Optional[List[Link[User]]] = []

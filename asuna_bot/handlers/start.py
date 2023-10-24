@@ -35,7 +35,6 @@ async def add_release(chat_id, title: Title):
         en_title=title.names.en,
         ru_title=title.names.ru,
         is_ongoing=True,
-        episodes=None,
     )
     await db.add_release(chat_id, release)
 

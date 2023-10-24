@@ -11,13 +11,16 @@ from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
-from pytz import timezone
 from asuna_bot.utils import craft_time_str, random_kaomoji
+
+import pytz
+utc = pytz.UTC
+
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
 BACK_URL = "https://backoffice.anilibria.top/resources/anime__releases/"
-msk = timezone("Europe/Moscow")
+msk = pytz.timezone("Europe/Moscow")
 fmt = "%d.%m  %H:%M"
 fmt2 = "%d дней %H Часов %M Минут"
 ###############################################################
@@ -57,8 +60,8 @@ class ChatController:
             await self._send_torrents_to_chat()
             try:
                 await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
-                await self._del_last_srvc_msg()
             except TelegramBadRequest:
+                log.debug("Не удалось закрепить сообщение!")
                 pass
             self._torrents.clear()
 
@@ -78,12 +81,12 @@ class ChatController:
 
                 log.debug("Нашли EP:")
                 log.debug(self._ep.model_dump_json())
-                uploaded_at = datetime.fromtimestamp(float(title["updated"]))
+                uploaded_at = datetime.utcfromtimestamp(float(title["updated"]))
                 td = uploaded_at - self._ep.date
 
                 log.debug(f"uploaded_at={uploaded_at}")
                 log.debug(f"timedelta={td}")
-
+                
                 time_str = craft_time_str(td)
                 log.debug(f"Вышла за: {time_str}")
                 
@@ -207,8 +210,3 @@ class ChatController:
             await self._bot.send_document(self.chat_id, file)
             await asyncio.sleep(2)
         await session.close()
-
-    async def _del_last_srvc_msg(self):
-        if self._last_msg:
-            await self._bot.delete_message(self.chat_id,
-                                           self._last_msg.message_id + 1)

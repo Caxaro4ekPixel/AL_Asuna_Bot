@@ -24,4 +24,4 @@ class InterceptHandler(logging.Handler):
 
 def set_logging():
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-    logger.add(f"{__logpath__}asuna_{__version__}.log", backtrace=True, diagnose=True, rotation="50 MB")
+    logger.add(f"{__logpath__}asuna_{__version__}.log", backtrace=True, diagnose=True, rotation="10 MB")
