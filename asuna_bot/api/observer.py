@@ -47,7 +47,13 @@ class ApiRssObserver:
             chat: ChatController
             log.debug("_push_title_update")
             await chat.release_up(titles)
-            
+
+    # async def _push_notify(self) -> None:
+    #     for chat in self.chats.values():
+    #         chat: ChatController
+    #         log.debug("_push_notify")
+    #         await chat.notify()
+
     async def _rss_request(self, url: str, params: dict, limit):
         try:
             response = await self._session.get(url, params=params, timeout=30)

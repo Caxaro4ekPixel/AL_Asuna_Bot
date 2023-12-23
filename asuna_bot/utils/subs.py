@@ -1,5 +1,5 @@
 import re
-from aiogram.types import  BufferedInputFile
+from aiogram.types import BufferedInputFile
 from asuna_bot.config import __version__
 import io
 
@@ -7,7 +7,7 @@ def _parse_text(element) -> str:
         text = ','.join(element['text']).strip().replace("\\N", " ").replace("  ", " ")
         
         if text.startswith('—'):
-            text = text.replace("—", "")
+            text = text.replace("—", "").strip()
 
         if element['fx']: 
             text = f"[{text}]"
@@ -18,7 +18,7 @@ def _parse_text(element) -> str:
                     text = f"[{text}]"
                     break
         
-        if element['name'] != '' and element['name'] != 'НАДПИСЬ':
+        if element['name'] != '' and element['name'] not in ['НАДПИСЬ', 'Надпись']:
             text = f"({element['name']}) {text}"
 
         return re.sub(r'{.*?}', '', text)
