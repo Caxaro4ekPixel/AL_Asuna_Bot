@@ -19,7 +19,7 @@ from datetime import datetime
 import os
 import asyncio
 from loguru import logger as log
-
+from anilibria import AniLibriaClient
 
 dev_router = Router()
 
@@ -91,3 +91,18 @@ async def send_announce(msg: Message, command: CommandObject):
             await msg.answer("hitting limits!")
             continue
     await msg.answer("Рассылка закончена")
+
+
+
+@dev_router.message(Command("update_ongoings"))
+async def update_ongoings(msg: Message, command: CommandObject):
+    chats = await Chat.get_all_ongoing_chats()
+    al_client = AniLibriaClient()
+
+    for chat in chats:
+        title = await al_client.get_title(chat.release.id)
+        # code 2 = завершен, code 1 = в работе
+        if title.status.code == 2:
+            text = html.code(title.id) + "\nЗавершен, но статус не изменен в ДБ"
+            await bot.send_message(CONFIG.bot.admin_chat, text)
+            await asyncio.sleep(3)
