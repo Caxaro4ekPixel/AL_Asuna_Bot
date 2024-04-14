@@ -193,6 +193,7 @@ class ChatController:
         return "\n".join(text1 + text2 + text3)
 
     async def _send_message_to_chat(self):
+        print(self.chat_id)
         text = self._craft_message_text()
         self._last_msg = await self._bot.send_message(self.chat_id, text,
                                                       disable_web_page_preview=True)
