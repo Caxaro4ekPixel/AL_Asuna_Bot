@@ -8,7 +8,9 @@ from asuna_bot.db.odm import __beanie_models__
 from beanie import init_beanie
 from asuna_bot.api import ApiRssObserver
 from asuna_bot.utils.logging import set_logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+scheduler = AsyncIOScheduler()
 
 
 async def bot_coro() -> None:
@@ -17,7 +19,8 @@ async def bot_coro() -> None:
     commands = [
         BotCommand(command="raw", description="Какую равки скидывать?: /raw [SubsPlease] (Erai-raws поумолчанию)"),
         BotCommand(command="srt", description="реплаем на файл сабов в формате .ass (Конвертирует .ass в .srt)"),
-        BotCommand(command="deadline", description="Сколько дней до дедлайна? отображается в сообщении с торрентами (4 поумолчанию)"),
+        BotCommand(command="deadline",
+                   description="Сколько дней до дедлайна? отображается в сообщении с торрентами (4 поумолчанию)"),
         BotCommand(command="time", description="Проверить за сколько вышла последняя серия"),
     ]
     bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
@@ -35,6 +38,10 @@ async def rss_coro() -> None:
     await rss.start_polling()
 
 
+async def timer_coro() -> None:
+    scheduler.start()
+
+
 if __name__ == "__main__":
     set_logging()
 
@@ -43,5 +50,6 @@ if __name__ == "__main__":
 
         loop.create_task(bot_coro()),
         loop.create_task(rss_coro()),
+        loop.create_task(timer_coro()),
     )
     loop.run_until_complete(gather)

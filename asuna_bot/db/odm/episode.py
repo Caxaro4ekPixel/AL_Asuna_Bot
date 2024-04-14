@@ -7,7 +7,7 @@ from .user import User
 
 class Episode(BaseModel):
     number: Optional[float] = None
-    status: Optional[str] = "Перевод"
+    status: Optional[str] = "ворк-ворк!"
     date: datetime
     deadline_at: datetime
     translation_time: Optional[int] = 0

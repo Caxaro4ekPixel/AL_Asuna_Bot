@@ -46,7 +46,7 @@ class ChatController:
             if sub.startswith("["):
                 pass
             else:
-                sub = "["+ sub + "]"
+                sub = "[{0}]".format(sub)
 
             if sub in torrent.submitter:
                 ratio = SequenceMatcher(None, s1, s2).ratio()
