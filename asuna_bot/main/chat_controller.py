@@ -107,6 +107,10 @@ class ChatController:
                 )
     
 
+    # async def notify(self) -> None:
+    #     ep = list(self._release.episodes)[-1]
+    #     ep = self._release.episodes.get(ep)
+            
     async def _add_new_episode(self):
         torrent = self._torrents[0]
         if self._release.episodes:
@@ -130,7 +134,7 @@ class ChatController:
             number=torrent.serie,
             date=torrent.date,
             deadline_at=deadline,
-            status="Перевод",
+            status="В работе",
         )
         await db.add_episode(self._release, self._ep)
         log.info("Добавили новый эпизод")

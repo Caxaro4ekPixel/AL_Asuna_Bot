@@ -12,22 +12,22 @@ from .rss_parser import rss_to_json
 
 from anilibria import AniLibriaClient
 
-
 class ApiRssObserver:
     __instance = None
 
     def __new__(cls):
         if cls.__instance is None:
             cls.__instance = super().__new__(cls)
-
-        return cls.__instance
+        
+        return cls.__instance 
 
     def __init__(self) -> None:
         self.chats = dict()
         self._session = ClientSession()
-        self._running: bool = True
-        self._config: NyaaRssConf
+        self._running : bool = True
+        self._config : NyaaRssConf
         self._al_client = AniLibriaClient(logging=True)
+
 
     async def _register_chats(self):
         all_ongoings = await db.get_all_ongoing_chats()
@@ -35,17 +35,24 @@ class ApiRssObserver:
         for chat in all_ongoings:
             chat: Chat
             self.chats[chat.id] = ChatController(chat)
+  
 
     async def _push_rss_update(self, torrents) -> None:
         for chat in self.chats.values():
             chat: ChatController
             await chat.nyaa_update(torrents)
-
+        
     async def _push_title_update(self, titles: list) -> None:
         for chat in self.chats.values():
             chat: ChatController
             log.debug("_push_title_update")
             await chat.release_up(titles)
+
+    # async def _push_notify(self) -> None:
+    #     for chat in self.chats.values():
+    #         chat: ChatController
+    #         log.debug("_push_notify")
+    #         await chat.notify()
 
     async def _rss_request(self, url: str, params: dict, limit):
         try:
@@ -60,7 +67,7 @@ class ApiRssObserver:
         except Exception as ex:
             json = None
             log.debug(ex)
-
+        
         return json
 
     async def _http_request(self, url: str, params: dict) -> list:
@@ -70,8 +77,9 @@ class ApiRssObserver:
         except Exception as ex:
             log.error(ex)
             return None
-
+        
         return json
+
 
     async def start_polling(self):
         """Поллинг rss ленты"""
@@ -85,23 +93,24 @@ class ApiRssObserver:
             await self._register_chats()
             log.debug(self.chats.keys())
             parsed_rss = await self._rss_request(conf.base_url, conf.params, conf.limit)
-
+            
             if parsed_rss is None:
                 await asyncio.sleep(conf.interval)
                 continue
-
+            
             rss_last_id = parsed_rss[0].get("id")
 
             if rss_last_id <= conf.last_id:
                 log.info("Нет новых торрентов на няшке")
             else:
                 torrents = [
-                    NyaaTorrent(**torrent)
-                    for torrent in parsed_rss
+                    NyaaTorrent(**torrent) 
+                    for torrent in parsed_rss 
                     if torrent.get("id") > conf.last_id
                 ]
-                await self._push_rss_update(torrents)  # Делаем пуш чатам
+                await self._push_rss_update(torrents) # Делаем пуш чатам
                 await db.update_nyaa_rss_conf(last_id=rss_last_id)
+
 
             al_conf = await db.get_al_conf()
             log.debug(f"al_conf={al_conf.model_dump_json()}")
@@ -117,18 +126,20 @@ class ApiRssObserver:
                 last_update = titles[0]["updated"]
                 await db.update_al_api_conf(last_update=last_update + 1)
                 log.debug(f"last_update={last_update}")
-                if last_update > al_conf.last_update:
+                if last_update > al_conf.last_update:     
                     await self._push_title_update(titles)
                 else:
                     log.info("Нет новых апдейтов на сайте")
 
             await asyncio.sleep(conf.interval)
 
+
+
     def _build_params_str(self) -> None:
         if self._config.submitters:
             if len(self._config.submitters) > 1:
                 s = " || ".join(self._config.submitters)
-            else:
+            else: 
                 s = self._config.submitters[-1]
             self._config.params["q"] += s
 

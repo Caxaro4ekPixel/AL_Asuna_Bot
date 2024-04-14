@@ -1,7 +1,8 @@
 from beanie import Document, Link
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 from .release import Release
+from loguru import logger as log
 
 class ChatConfig(BaseModel):
     submitter          : str  = "[Erai-raws]"
@@ -30,6 +31,15 @@ class Chat(Document):
     async def get_by_id(cls, chat_id: int) -> Optional["Chat"]:
         return await cls.find_one(cls.id == chat_id)
 
+    @classmethod
+    async def get_all_ongoing_chats(cls) -> Optional[List["Chat"]]:
+        try:
+            return await cls.find(cls.release.is_ongoing == True,  # noqa: E712
+                                  fetch_links=True).to_list()
+        except Exception as ex:
+            log.error("chat.py -> get_all_ongoing_chats")
+            log.error(ex)
+    
     @classmethod
     async def change_settings(cls, chat_id: int, key: str, val: bool | str) -> None:
         chat = await cls.find_one(cls.id == chat_id)

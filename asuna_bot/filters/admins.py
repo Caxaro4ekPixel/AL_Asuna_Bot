@@ -1,6 +1,6 @@
 from aiogram.filters import Filter
 from aiogram.types import Message
-from asuna_bot.db.mongo import Mongo as db
+from asuna_bot.db.odm import User
 from asuna_bot.config import CONFIG
 
 
@@ -13,7 +13,6 @@ class AdminFilter(Filter):
 
 class AllowedUserFilter(Filter):
     async def __call__(self, message: Message) -> bool:
-        all_users = await db.get_all_user_ids()
-        if message.from_user.id in all_users:
-            return True
-        return False
+        all_users = await User.get_all_user_ids()
+        return message.from_user.id in all_users
+
