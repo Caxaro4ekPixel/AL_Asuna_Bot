@@ -28,7 +28,7 @@ async def send_report(msg: Message):
         ep_count = len(ongoing.episodes)
 
         if ep_count > 0:
-            ikeys = [int(k) for k in ongoing.episodes.keys()]
+            ikeys = [int(float(k)) for k in ongoing.episodes.keys()]
             episode = ongoing.episodes.get(str(max(ikeys)))
             status = episode.status
 
