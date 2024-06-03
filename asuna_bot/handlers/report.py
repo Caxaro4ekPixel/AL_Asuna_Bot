@@ -16,7 +16,8 @@ from asuna_bot.middlewares.database import UserMiddleware
 report_router = Router()
 report_router.message.filter(AdminFilter())
 report_router.message.middleware(UserMiddleware())
-bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
+bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
+
 
 @report_router.message(Command("report"))
 async def send_report(msg: Message):
@@ -27,8 +28,8 @@ async def send_report(msg: Message):
         ep_count = len(ongoing.episodes)
 
         if ep_count > 0:
-            last_ep = list(ongoing.episodes)[-1]
-            episode = ongoing.episodes.get(last_ep)
+            ikeys = [int(k) for k in ongoing.episodes.keys()]
+            episode = ongoing.episodes.get(str(max(ikeys)))
             status = episode.status
 
             text += [
@@ -36,7 +37,7 @@ async def send_report(msg: Message):
                 f"{episode.number}-я серия {html.bold(status)}",
                 "",
             ]
-    
-        else: 
+
+        else:
             pass
     await msg.answer("\n".join(text).replace(".0", ""))
