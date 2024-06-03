@@ -75,4 +75,16 @@ class Release(Document):
     async def set_deadline(cls, chat_id: int, days: int) -> None:
         release = await cls.get_by_chat_id(chat_id)
         release.days_to_work = days
+
         await release.save()
+
+    @classmethod
+    async def finish_release(cls, id: int) -> None:
+        try:
+            release = await cls.find_one(cls.id == id)
+            release.is_ongoing = False
+            await release.save()
+
+        except Exception as ex:
+            log.error("DB problem!")
+            log.error(ex)

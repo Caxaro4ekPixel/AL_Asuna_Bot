@@ -2,7 +2,7 @@
 DEV TOOLS:
 /id - отправить инфу о чате из БД
 /add - добавляет пустой эпизод в БД
-/log - скидывает лог в админский чат 
+/log - скидывает лог в админский чат
 /announce - рассылает сообщение во все конфы-онгоинги
 """
 
@@ -36,12 +36,11 @@ async def send_chat_id(msg: Message):
         log.error("dev_tools.py -> send_chat_id")
         log.error("Не найдено записи о чате или релизе в БД!")
         return
-    
+
     try:
         await msg.delete()
     except Exception:
         pass
-    
 
     chat_obj = json.loads(db_chat.model_dump_json())
     chat_formatted_str = json.dumps(chat_obj, indent=2, ensure_ascii=False)
@@ -81,7 +80,7 @@ async def send_announce(msg: Message, command: CommandObject):
     text = msg.html_text.removeprefix("/announce").strip()
     if not command.text:
         return
-    
+
     await msg.answer("Всего чатов-онгоингов: " + str(len(chats)))
     for chat in chats:
         try:
@@ -93,7 +92,6 @@ async def send_announce(msg: Message, command: CommandObject):
     await msg.answer("Рассылка закончена")
 
 
-
 @dev_router.message(Command("update_ongoings"))
 async def update_ongoings(msg: Message, command: CommandObject):
     chats = await Chat.get_all_ongoing_chats()
@@ -103,6 +101,7 @@ async def update_ongoings(msg: Message, command: CommandObject):
         title = await al_client.get_title(chat.release.id)
         # code 2 = завершен, code 1 = в работе
         if title.status.code == 2:
-            text = html.code(title.id) + "\nЗавершен, но статус не изменен в ДБ"
+            await Release.finish_release(title.id)
+            text = html.code(title.id) + "\nЗавершен"
             await bot.send_message(CONFIG.bot.admin_chat, text)
             await asyncio.sleep(3)
