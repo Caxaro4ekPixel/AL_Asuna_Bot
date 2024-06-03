@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from environs import Env
 
-__version__ = "2.2.6"
+__version__ = "2.2.7"
 __logpath__ = "./log/"
 
 @dataclass
