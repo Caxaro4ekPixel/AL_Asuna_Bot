@@ -123,10 +123,10 @@ class ApiRssObserver:
             titles = await self._http_request(url, params)
             log.debug(f"titles={titles}")
             if titles:
-                last_update = titles[0]["updated"]
-                await db.update_al_api_conf(last_update=last_update + 1)
-                log.debug(f"last_update={last_update}")
-                if last_update > al_conf.last_update:     
+                lst_site_upd = titles[0]["updated"]
+                if lst_site_upd > al_conf.last_update:
+                    await db.update_al_api_conf(last_update=lst_site_upd + 1)
+                    log.debug(f"last_site_update={lst_site_upd}")
                     await self._push_title_update(titles)
                 else:
                     log.info("Нет новых апдейтов на сайте")
