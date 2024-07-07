@@ -3,6 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from .release import Release
 from loguru import logger as log
+from beanie.operators import Set
 
 class ChatConfig(BaseModel):
     submitter          : str  = "[Erai-raws]"
@@ -44,3 +45,11 @@ class Chat(Document):
     async def change_settings(cls, chat_id: int, key: str, val: bool | str) -> None:
         chat = await cls.find_one(cls.id == chat_id)
         await chat.set({f"config.{key}": val})
+    
+
+    @classmethod
+    async def update_chat_conf(cls, chat_id: int, **kwargs) -> None:
+        for key, val in kwargs.items():
+            await cls.find_one(Chat.id == chat_id).update(
+                Set({f"config.{key}": val})
+            )

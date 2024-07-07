@@ -3,7 +3,6 @@ from typing import List
 from aiohttp import ClientSession
 from loguru import logger as log
 from asuna_bot.api.models import NyaaTorrent
-from asuna_bot.db.mongo import Mongo as db
 from aiogram import Bot, html
 from difflib import SequenceMatcher
 from asuna_bot.config import CONFIG
@@ -14,6 +13,7 @@ from aiogram.exceptions import TelegramBadRequest
 from asuna_bot.utils import craft_time_str, random_kaomoji
 
 import pytz
+
 utc = pytz.UTC
 
 
@@ -25,23 +25,24 @@ fmt = "%d.%m  %H:%M"
 fmt2 = "%d дней %H Часов %M Минут"
 ###############################################################
 
+
 class ChatController:
     def __init__(self, chat: Chat) -> None:
         self._chat = chat
         self._release: Release = self._chat.release
         self._torrents: List[NyaaTorrent] = []
         self._ep: Episode
-        self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
+        self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
         self._last_msg: Message
 
-        self.chat_id = self._chat.id # Для прода
-        # self.chat_id = CONFIG.bot.admin_chat # Для теста
+        # self.chat_id = self._chat.id # Для прода
+        self.chat_id = CONFIG.bot.admin_chat  # Для теста
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
             s1 = self._release.en_title.lower()
             s2 = torrent.title.lower()
-            
+
             sub = self._chat.config.submitter
             if sub.startswith("["):
                 pass
@@ -59,7 +60,9 @@ class ChatController:
             await self._send_message_to_chat()
             await self._send_torrents_to_chat()
             try:
-                await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
+                await self._bot.pin_chat_message(
+                    self._chat.id, self._last_msg.message_id
+                )
             except TelegramBadRequest:
                 log.debug("Не удалось закрепить сообщение!")
                 pass
@@ -86,14 +89,14 @@ class ChatController:
 
                 log.debug(f"uploaded_at={uploaded_at}")
                 log.debug(f"timedelta={td}")
-                
+
                 time_str = craft_time_str(td)
                 log.debug(f"Вышла за: {time_str}")
-                
+
                 self._ep.overall_time = int(td.total_seconds())
                 self._ep.uploaded_at = uploaded_at
                 self._ep.status = f"Вышла за {time_str}"
-                
+
                 await self._release.save()
 
                 log.debug("Обновили overall_time и uploaded_at в БД")
@@ -102,15 +105,13 @@ class ChatController:
                 log.debug(f"Отправляем сообщение в чат {self.chat_id}")
 
                 await self._bot.send_message(
-                    self.chat_id,
-                    f"{last_ep}-я серия вышла за:\n{time_str}"
+                    self.chat_id, f"{last_ep}-я серия вышла за:\n{time_str}"
                 )
-    
 
     # async def notify(self) -> None:
     #     ep = list(self._release.episodes)[-1]
     #     ep = self._release.episodes.get(ep)
-            
+
     async def _add_new_episode(self):
         torrent = self._torrents[0]
         if self._release.episodes:
@@ -118,7 +119,7 @@ class ChatController:
             self._ep = self._release.episodes.get(ep)
 
             if float(ep) == torrent.serie:
-                #TODO обновить сообщение с инфой, добавить ссылки на новый качества  
+                # TODO обновить сообщение с инфой, добавить ссылки на новый качества
                 # await self._send_torrents_to_chat()
                 return
 
@@ -187,7 +188,7 @@ class ChatController:
             f"﴾{html.link('❤️Сайт❤️', SITE_URL + rel.code + '.html')}  ‖  {html.link('🖤Админка🖤', BACK_URL + str(rel.id))}﴿",
             "",
             f"⏳<i>Дедлайн</i>:  <b>{deadline} МСК</b>",
-            html.spoiler(random_kaomoji())
+            html.spoiler(random_kaomoji()),
         ]
 
         return "\n".join(text1 + text2 + text3)
@@ -195,8 +196,9 @@ class ChatController:
     async def _send_message_to_chat(self):
         print(self.chat_id)
         text = self._craft_message_text()
-        self._last_msg = await self._bot.send_message(self.chat_id, text,
-                                                      disable_web_page_preview=True)
+        self._last_msg = await self._bot.send_message(
+            self.chat_id, text, disable_web_page_preview=True
+        )
         await asyncio.sleep(1)
 
     async def _send_torrents_to_chat(self):
@@ -204,8 +206,11 @@ class ChatController:
         for torrent in self._torrents:
             response = await session.get(str(torrent.file_url), allow_redirects=True)
 
-            title = '{:.20}'.format(self._release.ru_title) + "..." \
-                if len(self._release.ru_title) >= 20 else self._release.ru_title
+            title = (
+                "{:.20}".format(self._release.ru_title) + "..."
+                if len(self._release.ru_title) >= 20
+                else self._release.ru_title
+            )
 
             serie = str(torrent.serie).removesuffix(".0")
 

@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 from beanie import Document
 from pydantic import BaseModel
-from datetime import date, datetime, time, timedelta
+from beanie.operators import Set
 
 class NyaaRssConf(BaseModel):
     running    : bool = True
@@ -18,6 +18,7 @@ class AlApiConf(BaseModel):
     back_url : str = "https://backoffice.anilibria.top/resources/anime__releases/"
     last_update : int = 1695034197
 
+
 class BotConfig(Document):
     timezone : str = "Europe/Moscow"
     deadline_fmt : str = "%d.%m  %H:%M"
@@ -27,3 +28,27 @@ class BotConfig(Document):
 
     class Settings:
         name = "bot_config"
+
+
+    @classmethod
+    def get_al_conf(cls) -> Optional["AlApiConf"]:
+        return cls.al_api
+    
+    @classmethod
+    def get_nyaa_rss_conf(cls) -> Optional["NyaaRssConf"]:
+        return cls.nyaa_rss
+    
+
+    @classmethod
+    async def update_nyaa_rss_conf(cls, **kwargs) -> None:
+        for key, val in kwargs.items():
+            await cls.update(
+                Set({f"nyaa_rss.{key}": val})
+            )
+
+    @classmethod
+    async def update_al_api_conf(cls, **kwargs) -> None:
+        for key, val in kwargs.items():
+            await cls.update(
+                Set({f"al_api.{key}": val})
+            )

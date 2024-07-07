@@ -29,14 +29,6 @@ class Mongo:
             return chat
         return None
 
-    @staticmethod
-    async def get_all_ongoing_chats() -> List:
-        try:
-            return await Chat.find(Chat.release.is_ongoing == True,  # noqa: E712
-                                   fetch_links=True).to_list()
-        except Exception as ex:
-            log.error("DB problem!")
-            log.error(ex)
 
     @staticmethod
     async def get_release(release_id: int) -> Release:
@@ -46,15 +38,7 @@ class Mongo:
     async def get_release_by_chat_id(chat_id: int) -> Release:
         return await Release.find_one(Release.chat_id == chat_id)
 
-    @staticmethod
-    async def get_nyaa_rss_conf() -> NyaaRssConf:
-        conf = await BotConfig.find({}).first_or_none()
-        return conf.nyaa_rss
 
-    @staticmethod
-    async def get_al_conf() -> AlApiConf:
-        conf = await BotConfig.find({}).first_or_none()
-        return conf.al_api
 
 
     @staticmethod
@@ -86,23 +70,4 @@ class Mongo:
         new_user = User(id=id, name=name, role=role)
         await new_user.create()
 
-    @staticmethod
-    async def update_chat_conf(chat_id: int, **kwargs) -> None:
-        for key, val in kwargs.items():
-            await Chat.find_one(Chat.id == chat_id).update(
-                Set({f"config.{key}": val})
-            )
-
-    @staticmethod
-    async def update_nyaa_rss_conf(**kwargs) -> None:
-        for key, val in kwargs.items():
-            await BotConfig.find({}).update(
-                Set({f"nyaa_rss.{key}": val})
-            )
-
-    @staticmethod
-    async def update_al_api_conf(**kwargs) -> None:
-        for key, val in kwargs.items():
-            await BotConfig.find({}).update(
-                Set({f"al_api.{key}": val})
-            )
+    

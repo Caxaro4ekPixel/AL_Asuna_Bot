@@ -2,7 +2,6 @@ from urllib.parse import quote, urlencode
 from lxml import etree
 from dateutil.parser import parse
 import re
-from loguru import logger
 
 def parse_submitter(full_str: str) -> str:
     b = full_str.find("]")

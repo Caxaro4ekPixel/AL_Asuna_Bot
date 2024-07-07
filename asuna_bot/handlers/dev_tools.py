@@ -10,7 +10,6 @@ import json
 from aiogram import Router, html, Bot
 from aiogram.types import Message, FSInputFile
 from aiogram.exceptions import TelegramRetryAfter
-from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AdminFilter
 from aiogram.filters import Command, CommandObject
 from asuna_bot.db.odm import Chat, Release, Episode
