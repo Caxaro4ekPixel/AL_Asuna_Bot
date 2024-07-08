@@ -35,8 +35,8 @@ class ChatController:
         self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
         self._last_msg: Message
 
-        # self.chat_id = self._chat.id # Для прода
-        self.chat_id = CONFIG.bot.admin_chat  # Для теста
+        self.chat_id = self._chat.id # Для прода
+        # self.chat_id = CONFIG.bot.admin_chat  # Для теста
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
