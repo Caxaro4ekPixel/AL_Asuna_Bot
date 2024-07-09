@@ -9,7 +9,7 @@ from beanie import init_beanie
 from asuna_bot.api import ApiRssObserver
 from asuna_bot.utils.logging import set_logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from aiogram.client.default import DefaultBotProperties
 scheduler = AsyncIOScheduler()
 
 
@@ -23,7 +23,7 @@ async def bot_coro() -> None:
                    description="Сколько дней до дедлайна? отображается в сообщении с торрентами (4 поумолчанию)"),
         BotCommand(command="time", description="Проверить за сколько вышла последняя серия"),
     ]
-    bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
+    bot = Bot(token=CONFIG.bot.token, default=DefaultBotProperties(parse_mode='HTML'))
 
     await bot.set_my_commands(commands)
     await dp.start_polling(bot)

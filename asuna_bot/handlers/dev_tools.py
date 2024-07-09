@@ -19,11 +19,12 @@ import os
 import asyncio
 from loguru import logger as log
 from anilibria import AniLibriaClient
+from aiogram.client.default import DefaultBotProperties
 
 dev_router = Router()
 
 dev_router.message.filter(AdminFilter())
-bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
+bot: Bot = Bot(token=CONFIG.bot.token, default=DefaultBotProperties(parse_mode='HTML'))
 
 
 @dev_router.message(Command("id"))
@@ -62,7 +63,7 @@ async def add_ep_to_release(msg: Message, command: CommandObject):
     new_ep = Episode(
         number=ep_num, status="test", date=datetime.now(), deadline_at=datetime.now()
     )
-    await db.add_episode(db_release, new_ep)
+    await Release.add_episode(db_release, new_ep)
 
 
 @dev_router.message(Command("log"))

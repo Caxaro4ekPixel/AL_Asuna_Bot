@@ -11,12 +11,12 @@ from aiogram.filters import Command
 from asuna_bot.db.odm import Release
 from asuna_bot.config import CONFIG
 from asuna_bot.middlewares.database import UserMiddleware
-
+from aiogram.client.default import DefaultBotProperties
 
 report_router = Router()
 report_router.message.filter(AdminFilter())
 report_router.message.middleware(UserMiddleware())
-bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
+bot: Bot = Bot(token=CONFIG.bot.token, default=DefaultBotProperties(parse_mode='HTML'))
 
 
 @report_router.message(Command("report"))

@@ -81,7 +81,7 @@ class ApiRssObserver:
         """Поллинг rss ленты"""
         log.info("Start Nyaa.si RSS AND AniLibria updates polling")
         while self._running:
-            self._config = BotConfig.get_nyaa_rss_conf()
+            self._config = await BotConfig.get_nyaa_rss_conf()
             conf = self._config
             self._build_params_str()
 

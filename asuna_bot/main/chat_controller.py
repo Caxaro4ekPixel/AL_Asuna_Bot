@@ -11,7 +11,7 @@ from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
 from asuna_bot.utils import craft_time_str, random_kaomoji
-
+from aiogram.client.default import DefaultBotProperties
 import pytz
 
 utc = pytz.UTC
@@ -32,7 +32,7 @@ class ChatController:
         self._release: Release = self._chat.release
         self._torrents: List[NyaaTorrent] = []
         self._ep: Episode
-        self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
+        self._bot: Bot = Bot(token=CONFIG.bot.token, default=DefaultBotProperties(parse_mode='HTML'))
         self._last_msg: Message
 
         self.chat_id = self._chat.id # Для прода
