@@ -107,7 +107,7 @@ class ApiRssObserver:
                 await self._push_rss_update(torrents)  # Делаем пуш чатам
                 await BotConfig.update_nyaa_rss_conf(last_id=rss_last_id)
 
-            al_conf = BotConfig.get_al_conf()
+            al_conf = await BotConfig.get_al_conf()
             log.debug(f"al_conf={al_conf.model_dump_json()}")
             url = "http://api.anilibria.tv/v2/getUpdates"
             params = {
