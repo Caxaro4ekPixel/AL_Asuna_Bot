@@ -6,7 +6,7 @@ anilibria.py==1.0.4
 annotated-types==0.7.0
 APScheduler==3.10.4
 async-timeout==4.0.3
-attrs==23.2.0
+attrs==22.2.0
 beanie==1.26.0
 cattrs==23.1.2
 certifi==2023.7.22
