@@ -137,7 +137,7 @@ class ChatController:
             deadline_at=deadline,
             status="В работе",
         )
-        await Release.add_episode(self._release, self._ep)
+        await Release.add_episode(self._ep)
         log.info("Добавили новый эпизод")
 
     def _dispatch_torrents(self) -> NyaaTorrent:
