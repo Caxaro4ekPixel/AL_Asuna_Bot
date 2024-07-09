@@ -79,6 +79,16 @@ class Release(Document):
         await release.save()
 
     @classmethod
+    async def set_en_title(cls, chat_id: int, title: str) -> None:
+        try:
+            release = await cls.get_by_chat_id(chat_id)
+            release.en_title = title
+            await release.save()
+        except Exception as ex:
+            log.error("DB problem!")
+            log.error(ex)
+
+    @classmethod
     async def finish_release(cls, id: int) -> None:
         try:
             release = await cls.find_one(cls.id == id)
