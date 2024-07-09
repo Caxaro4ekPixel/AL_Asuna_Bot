@@ -3,7 +3,7 @@
 если неудачно:
 просит ввести id релиза
 отправляет клавиатуру с первичными настройками релиза для этого чата
-срабатывает только в чатах, которых еще нет в БД  
+срабатывает только в чатах, которых еще нет в БД
 """
 
 from aiogram import Router, types, html
@@ -11,7 +11,6 @@ from aiogram.filters import CommandObject, Command
 from aiogram.utils.keyboard import InlineKeyboardButton, InlineKeyboardBuilder
 from aiogram.types import CallbackQuery
 from loguru import logger as log
-from asuna_bot.db.mongo import Mongo as db
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
 from asuna_bot.db.odm import Release
@@ -35,7 +34,6 @@ async def add_release(chat_id, title: Title):
         en_title=title.names.en,
         ru_title=title.names.ru,
         is_ongoing=True,
-        episodes=None,
     )
     await db.add_release(chat_id, release)
 
@@ -46,8 +44,7 @@ async def is_title_exist(message, title_id):
     if chat:
         if chat.id != message.chat.id:
             await message.answer(
-                "Этот тайтл уже закреплен за другим чатом!\n"
-                + html.bold(chat.name)
+                "Этот тайтл уже закреплен за другим чатом!\n" + html.bold(chat.name)
             )
 
         if chat.id == message.chat.id:
@@ -61,7 +58,7 @@ async def search_title(message: types.Message):
     try:
         titles = await libria.search_titles(
             message.chat.title.split("/")[0],
-            filter="id,code,names,status,season,type,team"
+            filter="id,code,names,status,season,type,team",
         )
     except Exception as e:
         log.error(e)
@@ -76,21 +73,23 @@ async def send_title_to_chat(titles, chat_id):
     await bot.send_message(chat_id, titles.list[0].code)
 
     if titles.pagination.total_items > 1:
-
         markup = InlineKeyboardBuilder()
         for i in range(len(titles.list)):
             markup.row(
                 InlineKeyboardButton(
-                    text=titles.list[i].names.ru, 
-                    callback_data=CallbacksTitle(id=str(titles.list[i].id)).pack()
+                    text=titles.list[i].names.ru,
+                    callback_data=CallbacksTitle(id=str(titles.list[i].id)).pack(),
                 )
             )
-        await bot.send_message(chat_id, "Найдено несколько тайтлов!", 
-                               reply_markup=markup.as_markup())
+        await bot.send_message(
+            chat_id, "Найдено несколько тайтлов!", reply_markup=markup.as_markup()
+        )
     else:
         await add_release(chat_id, titles.list[0])
-        await bot.send_message(chat_id, 
-                               f"Тайтл: {html.bold(titles.list[0].names.ru)} закреплен за этим чатом")
+        await bot.send_message(
+            chat_id,
+            f"Тайтл: {html.bold(titles.list[0].names.ru)} закреплен за этим чатом",
+        )
 
 
 async def id_search_title(message: types.Message, command: CommandObject):
@@ -100,13 +99,17 @@ async def id_search_title(message: types.Message, command: CommandObject):
     if exist:
         return
     try:
-        title = await libria.get_title(al_title_id, filter="id,code,names,status,season,type,team")
+        title = await libria.get_title(
+            al_title_id, filter="id,code,names,status,season,type,team"
+        )
         if not title:
             await message.answer(f"Тайтл c id {str(al_title_id)} не найден 🧐")
             return False
 
         await add_release(message.chat.id, title)
-        await message.answer(f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом")
+        await message.answer(
+            f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом"
+        )
 
     except AttributeError as err:
         log.error(err)
@@ -137,10 +140,13 @@ async def cmd_start_group(message: types.Message):
 @start_router.callback_query(CallbacksTitle.filter())
 async def cmd_callback_data(query: CallbackQuery, callback_data: CallbacksTitle):
     try:
-        title = await libria.get_title(id=callback_data.id, filter="id,code,names,status,season,type,team")
+        title = await libria.get_title(
+            id=callback_data.id, filter="id,code,names,status,season,type,team"
+        )
         await add_release(query.message.chat.id, title)
-        await query.answer(f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом")
+        await query.answer(
+            f"Тайтл: {html.bold(title.names.ru)} закреплен за этим чатом"
+        )
     except AttributeError as err:
         log.error(err)
         await query.answer(str(err))
-

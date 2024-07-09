@@ -3,7 +3,6 @@ from lxml import etree
 from dateutil.parser import parse
 import re
 
-
 def parse_submitter(full_str: str) -> str:
     b = full_str.find("]")
     return full_str[:b+1]
@@ -17,24 +16,26 @@ def parse_quality(full_str: str) -> str or None:
 
 
 def parse_title(full_title: str) -> str:
-    title = re.search(r"\](.*?) -", full_title)
+    title = re.search(r"\]\s*(.*?)\s*-\s*(\d+v*\d+)\s*(\(|\[)", full_title)
     if title:
         return title.group(1).strip()
     else:
-         return full_title
+         title = re.search(r"\](.*?)\[", full_title)
+         return title.group(1).strip()
 
 
-def parse_serie(full_str: str) -> float:
-    ep = "00"
-    if full_str.lower().startswith("[subsplease]"):
-        ep = full_str.split(" (")[0].split(" ")[-1]
-        if not ep.isdigit():
-             ep = re.findall(r" \d+", full_str)[-1]
-    if full_str.lower().startswith("[erai-raws]"):
-        ep = full_str.split(" [")[0].split(" ")[-1]
-
-    if ep.startswith("0"):
-        return float(ep[1:].strip())
+def parse_serie(full_title: str) -> float | str:
+    ep_str = re.search(r"(\d+v*\d+) (\(|\[)", full_title)
+    if ep_str is not None:
+        ep = ep_str.group(1).strip()
+    else:
+        return -1
+    
+    if not ep.isdigit():
+        if 'v' in ep: 
+            return float(ep[:2])
+        return -1
+    
     return float(ep)
 
 

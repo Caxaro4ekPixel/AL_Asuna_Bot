@@ -1,11 +1,12 @@
 from beanie import Document, Link
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 from .release import Release
-
+from loguru import logger as log
+from beanie.operators import Set
 
 class ChatConfig(BaseModel):
-    submitter          : str  = "[SubsPlease]"
+    submitter          : str  = "[Erai-raws]"
     show_alerts        : bool = True
     show_fhd           : bool = True
     show_hd            : bool = True
@@ -26,4 +27,29 @@ class Chat(Document):
     
     class Settings:
         name = "chats"
-        keep_nulls = True
+
+    @classmethod
+    async def get_by_id(cls, chat_id: int) -> Optional["Chat"]:
+        return await cls.find_one(cls.id == chat_id)
+
+    @classmethod
+    async def get_all_ongoing_chats(cls) -> Optional[List["Chat"]]:
+        try:
+            return await cls.find(cls.release.is_ongoing == True,  # noqa: E712
+                                  fetch_links=True).to_list()
+        except Exception as ex:
+            log.error("chat.py -> get_all_ongoing_chats")
+            log.error(ex)
+    
+    @classmethod
+    async def change_settings(cls, chat_id: int, key: str, val: bool | str) -> None:
+        chat = await cls.find_one(cls.id == chat_id)
+        await chat.set({f"config.{key}": val})
+    
+
+    @classmethod
+    async def update_chat_conf(cls, chat_id: int, **kwargs) -> None:
+        for key, val in kwargs.items():
+            await cls.find_one(Chat.id == chat_id).update(
+                Set({f"config.{key}": val})
+            )

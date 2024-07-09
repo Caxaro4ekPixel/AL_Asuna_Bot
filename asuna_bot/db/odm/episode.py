@@ -17,6 +17,3 @@ class Episode(BaseModel):
     overall_time: Optional[int] = 0
     uploaded_at: Optional[datetime] = 0
     team: Optional[List[Link[User]]] = []
-
-    class Settings:
-        keep_nulls = False

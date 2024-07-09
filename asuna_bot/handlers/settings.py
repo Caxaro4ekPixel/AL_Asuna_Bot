@@ -1,27 +1,47 @@
 """
-Командой /time сверяем за сколько вышла серия с момента появления на торрентах
+Командой /deadline устанавливаем дедлайн
+Командой /raw устанавливаем равку
 
 """
+import logging
 
-from aiogram import Router, types
+from aiogram import Router, types, html
 from aiogram.filters import Command, CommandObject
-from asuna_bot.db.mongo import Mongo as db
+from asuna_bot.db.odm import Release, Chat
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
+from loguru import logger
 
-from anilibria import AniLibriaClient
-from asuna_bot.api import ApiRssObserver
-
-libria = AniLibriaClient()
-observer = ApiRssObserver()
 settings_router = Router()
-settings_router.message.filter(AllowedUserFilter())
+settings_router.message.filter(AllowedUserFilter(), ChatTypeFilter("supergroup"))
 
 
-@settings_router.message(ChatTypeFilter(chat_type="supergroup"), Command("deadline"))
-async def cmd_deadline(message: types.Message, command: CommandObject):
-    chat_controller = observer.chats.get(message.chat.id)
-    if command.args.isdigit():
-        chat_controller._release.days_to_work = int(command.args)
-        await chat_controller._release.save()
-        await message.answer(f"Установлен дедлайн в {command.args} дня")
+@settings_router.message(Command("deadline"))
+async def set_deadline(message: types.Message, command: CommandObject):
+    if command.args:
+        if command.args.isdigit():
+            try:
+                await Release.set_deadline(message.chat.id, int(command.args))
+                await message.answer(f"Установлен дедлайн в {command.args} дня")
+            except Exception as ex:
+                logger.error("Не смогли установить дедлайн")
+                logger.error(ex)
+    else:
+        pass
+
+
+@settings_router.message(Command("raw"))
+async def set_submitter(msg: types.Message, command: CommandObject):
+    if command.args is None:
+        await msg.answer(html.italic("Укажите группу, например \n/raw [Erai-Raws]"))
+    else:
+        await Chat.change_settings(msg.chat.id, "submitter", command.args)
+
+
+@settings_router.message(Command("rawname"))
+async def set_raw_name(msg: types.Message, command: CommandObject):
+    if command.args is None:
+        await msg.answer(
+            html.italic("Укажите название релиза как в торренте, например \n/rawname Kono Sekai wa Fukanzen Sugiru"))
+    else:
+        await Release.set_en_title(msg.chat.id, command.args)

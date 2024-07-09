@@ -1,11 +1,8 @@
 import asyncio
-import json
-import random
 from typing import List
 from aiohttp import ClientSession
 from loguru import logger as log
 from asuna_bot.api.models import NyaaTorrent
-from asuna_bot.db.mongo import Mongo as db
 from aiogram import Bot, html
 from difflib import SequenceMatcher
 from asuna_bot.config import CONFIG
@@ -13,16 +10,21 @@ from asuna_bot.db.odm import Chat, Release, Episode
 from datetime import timedelta, datetime
 from aiogram.types import BufferedInputFile, Message
 from aiogram.exceptions import TelegramBadRequest
-from pytz import timezone
-from anilibria import Title
+from asuna_bot.utils import craft_time_str, random_kaomoji
+
+import pytz
+
+utc = pytz.UTC
+
 
 #####################TODO Брать это из БД  ####################
 SITE_URL = "https://www.anilibria.tv/release/"
 BACK_URL = "https://backoffice.anilibria.top/resources/anime__releases/"
-msk = timezone("Europe/Moscow")
+msk = pytz.timezone("Europe/Moscow")
 fmt = "%d.%m  %H:%M"
 fmt2 = "%d дней %H Часов %M Минут"
 ###############################################################
+
 
 class ChatController:
     def __init__(self, chat: Chat) -> None:
@@ -30,21 +32,26 @@ class ChatController:
         self._release: Release = self._chat.release
         self._torrents: List[NyaaTorrent] = []
         self._ep: Episode
-        self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode='HTML')
+        self._bot: Bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
         self._last_msg: Message
 
         self.chat_id = self._chat.id # Для прода
-        # self.chat_id = CONFIG.bot.admin_chat # Для теста
-
+        # self.chat_id = CONFIG.bot.admin_chat  # Для теста
 
     async def nyaa_update(self, torrents: List[NyaaTorrent]) -> None:
         for torrent in torrents:
             s1 = self._release.en_title.lower()
             s2 = torrent.title.lower()
 
-            if self._chat.config.submitter in torrent.submitter:
-                ratio = SequenceMatcher(None, s1, s2).ratio()
+            sub = self._chat.config.submitter
+            if sub.startswith("["):
+                pass
+            else:
+                sub = "[{0}]".format(sub)
 
+            if sub in torrent.submitter:
+                ratio = SequenceMatcher(None, s1, s2).ratio()
+                log.debug(f"{s1} <<<AND>>> {s2} with ratio={ratio}")
                 if ratio > 0.70:
                     self._torrents.append(torrent)
 
@@ -53,17 +60,21 @@ class ChatController:
             await self._send_message_to_chat()
             await self._send_torrents_to_chat()
             try:
-                await self._bot.pin_chat_message(self._chat.id, self._last_msg.message_id)
-                await self._del_last_srvc_msg()
+                await self._bot.pin_chat_message(
+                    self._chat.id, self._last_msg.message_id
+                )
             except TelegramBadRequest:
+                log.debug("Не удалось закрепить сообщение!")
                 pass
             self._torrents.clear()
 
     async def release_up(self, titles: list) -> None:
         for title in titles:
+            log.debug(title)
             if int(title["id"]) == self._release.id:
-                
+                log.debug("Есть совпадение")
                 try:
+                    log.debug("Попытка найти эпизод в Бд")
                     ep = list(self._release.episodes)[-1]
                     self._ep = self._release.episodes.get(ep)
                 except Exception as ex:
@@ -71,29 +82,35 @@ class ChatController:
                     log.error("Не нашли эпизода в БД")
                     return
 
-                td = datetime.fromtimestamp(float(title["updated"])) - self._ep.date
+                log.debug("Нашли EP:")
+                log.debug(self._ep.model_dump_json())
+                uploaded_at = datetime.utcfromtimestamp(float(title["updated"]))
+                td = uploaded_at - self._ep.date
+
+                log.debug(f"uploaded_at={uploaded_at}")
+                log.debug(f"timedelta={td}")
+
+                time_str = craft_time_str(td)
+                log.debug(f"Вышла за: {time_str}")
 
                 self._ep.overall_time = int(td.total_seconds())
+                self._ep.uploaded_at = uploaded_at
+                self._ep.status = f"Вышла за {time_str}"
+
                 await self._release.save()
+
+                log.debug("Обновили overall_time и uploaded_at в БД")
                 last_ep = title["player"]["series"]["last"]
+                log.debug(f"last_ep={last_ep}")
+                log.debug(f"Отправляем сообщение в чат {self.chat_id}")
+
                 await self._bot.send_message(
-                    self.chat_id,
-                    f"{last_ep}-я серия вышла за:\n"
-                    f"{td.days} дней, {td.seconds // 3600} часов {(td.seconds//60)%60} минут"
+                    self.chat_id, f"{last_ep}-я серия вышла за:\n{time_str}"
                 )
-    
-    async def check_time(self, title: Title) -> None:
-        try:
-            ep = list(self._release.episodes)[-1]
-            self._ep = self._release.episodes.get(ep)
-        except Exception as ex:
-            log.error(ex)
-            log.error("Не нашли эпизода в БД")
-            return False
 
-        td = datetime.fromtimestamp(title.updated) - self._ep.date
-
-        return td
+    # async def notify(self) -> None:
+    #     ep = list(self._release.episodes)[-1]
+    #     ep = self._release.episodes.get(ep)
 
     async def _add_new_episode(self):
         torrent = self._torrents[0]
@@ -102,7 +119,7 @@ class ChatController:
             self._ep = self._release.episodes.get(ep)
 
             if float(ep) == torrent.serie:
-                #TODO обновить сообщение с инфой, добавить ссылки на новый качества  
+                # TODO обновить сообщение с инфой, добавить ссылки на новый качества
                 # await self._send_torrents_to_chat()
                 return
 
@@ -118,7 +135,7 @@ class ChatController:
             number=torrent.serie,
             date=torrent.date,
             deadline_at=deadline,
-            status="Перевод",
+            status="В работе",
         )
         await db.add_episode(self._release, self._ep)
         log.info("Добавили новый эпизод")
@@ -136,15 +153,6 @@ class ChatController:
                     sd = torrent
 
         return fhd, hd, sd
-
-    @staticmethod
-    def _random_kaomoji() -> str:
-        with open('emoticon_dict.json', 'r', encoding='utf-8') as f:
-            emoticon_dict = json.load(f)
-            kaomoji = list(emoticon_dict.keys())
-
-        rnd = random.randint(0, len(kaomoji) - 1)
-        return kaomoji[rnd]
 
     def _craft_message_text(self) -> str:
         fhd, hd, sd = self._dispatch_torrents()
@@ -180,15 +188,17 @@ class ChatController:
             f"﴾{html.link('❤️Сайт❤️', SITE_URL + rel.code + '.html')}  ‖  {html.link('🖤Админка🖤', BACK_URL + str(rel.id))}﴿",
             "",
             f"⏳<i>Дедлайн</i>:  <b>{deadline} МСК</b>",
-            html.spoiler(self._random_kaomoji())
+            html.spoiler(random_kaomoji()),
         ]
 
         return "\n".join(text1 + text2 + text3)
 
     async def _send_message_to_chat(self):
+        print(self.chat_id)
         text = self._craft_message_text()
-        self._last_msg = await self._bot.send_message(self.chat_id, text,
-                                                      disable_web_page_preview=True)
+        self._last_msg = await self._bot.send_message(
+            self.chat_id, text, disable_web_page_preview=True
+        )
         await asyncio.sleep(1)
 
     async def _send_torrents_to_chat(self):
@@ -196,8 +206,11 @@ class ChatController:
         for torrent in self._torrents:
             response = await session.get(str(torrent.file_url), allow_redirects=True)
 
-            title = '{:.20}'.format(self._release.ru_title) + "..." \
-                if len(self._release.ru_title) >= 20 else self._release.ru_title
+            title = (
+                "{:.20}".format(self._release.ru_title) + "..."
+                if len(self._release.ru_title) >= 20
+                else self._release.ru_title
+            )
 
             serie = str(torrent.serie).removesuffix(".0")
 
@@ -205,10 +218,5 @@ class ChatController:
             bytes = await response.read()
             file = BufferedInputFile(bytes, filename)
             await self._bot.send_document(self.chat_id, file)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         await session.close()
-
-    async def _del_last_srvc_msg(self):
-        if self._last_msg:
-            await self._bot.delete_message(self.chat_id,
-                                           self._last_msg.message_id + 1)
