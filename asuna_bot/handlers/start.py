@@ -13,11 +13,12 @@ from aiogram.types import CallbackQuery
 from loguru import logger as log
 from asuna_bot.filters.admins import AllowedUserFilter
 from asuna_bot.filters.chat_type import ChatTypeFilter
-from asuna_bot.db.odm import Release
+from asuna_bot.db.odm import Release, Chat
 from aiogram import Bot
 from anilibria import AniLibriaClient, Title
 from asuna_bot.config import CONFIG
 from asuna_bot.filters.callbacks import CallbacksTitle
+from aiogram.client.default import DefaultBotProperties
 
 libria = AniLibriaClient()
 
@@ -35,12 +36,13 @@ async def add_release(chat_id, title: Title):
         ru_title=title.names.ru,
         is_ongoing=True,
     )
-    await db.add_release(chat_id, release)
+    await Chat.add_release(chat_id, release)
 
 
 async def is_title_exist(message, title_id):
     # если тайтл с этим id уже существует где-то в базе
-    chat = await db.get_chat_id_by_release_id(title_id)
+    release = await Release.get_by_id(title_id)
+    chat = await Chat.get_by_id(release.chat_id)
     if chat:
         if chat.id != message.chat.id:
             await message.answer(
@@ -68,7 +70,7 @@ async def search_title(message: types.Message):
 
 
 async def send_title_to_chat(titles, chat_id):
-    bot = Bot(token=CONFIG.bot.token, parse_mode="HTML")
+    bot = Bot(token=CONFIG.bot.token, default=DefaultBotProperties(parse_mode='HTML'))
 
     await bot.send_message(chat_id, titles.list[0].code)
 
@@ -119,9 +121,9 @@ async def id_search_title(message: types.Message, command: CommandObject):
 @start_router.message(ChatTypeFilter(chat_type="supergroup"))
 async def cmd_start(message: types.Message, command: CommandObject):
     # если первый раз запускаем команду
-    chat = await db.get_chat(message.chat.id)
+    chat = await Chat.get_by_id(message.chat.id)
     if not chat:
-        await db.add_chat(message.chat.id, message.chat.title)
+        await Chat.add(message.chat.id, message.chat.title)
 
     if command.args is None or not command.args.isdigit():
         titles = await search_title(message)

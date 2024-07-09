@@ -6,6 +6,7 @@ from .episode import Episode
 from anilibria import Title
 from beanie.operators import Set
 
+
 class Release(Document):
     id: int
     chat_id: int
@@ -25,20 +26,22 @@ class Release(Document):
     @classmethod
     async def get_by_id(cls, id: int) -> Optional["Release"]:
         return await cls.find_one(cls.id == id)
-    
+
     @classmethod
     async def get_by_chat_id(cls, chat_id: int) -> Optional["Release"]:
         return await cls.find_one(cls.chat_id == chat_id)
-    
+
     @classmethod
     async def get_by_code(cls, code: str) -> Optional["Release"]:
         return await cls.find_one(cls.code == code)
-    
+
     @classmethod
     async def get_all_ongoings(cls) -> Optional[List["Release"]]:
         try:
-            return await cls.find(cls.is_ongoing == True,  # noqa: E712
-                                   fetch_links=True).to_list()
+            return await cls.find(
+                cls.is_ongoing == True,  # noqa: E712
+                fetch_links=True,
+            ).to_list()
         except Exception as ex:
             log.error("DB problem!")
             log.error(ex)
@@ -46,16 +49,19 @@ class Release(Document):
     @classmethod
     async def get_all_tops(cls) -> Optional[List["Release"]]:
         try:
-            return await cls.find(cls.is_top == True,  # noqa: E712
-                                   fetch_links=True).to_list()
+            return await cls.find(
+                cls.is_top == True,  # noqa: E712
+                fetch_links=True,
+            ).to_list()
         except Exception as ex:
             log.error("DB problem!")
             log.error(ex)
 
-    @staticmethod
+
+    @classmethod
     async def add_episode(cls, episode: Episode) -> None:
         ep_num = str(episode.number).replace(".0", "").replace(".", "_")
-        await cls.update(Set({f"episodes.{ep_num}" : episode}))
+        await cls.update(Set({f"episodes.{ep_num}": episode}))
 
     @classmethod
     async def check_time(cls, title: Title) -> timedelta:
@@ -70,7 +76,7 @@ class Release(Document):
 
         td = datetime.fromtimestamp(title.updated) - ep.date
         return td
-    
+
     @classmethod
     async def set_deadline(cls, chat_id: int, days: int) -> None:
         release = await cls.get_by_chat_id(chat_id)
