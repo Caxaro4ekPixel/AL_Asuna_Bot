@@ -18,6 +18,7 @@ async def bot_coro() -> None:
     dp.include_routers(*__routers__)
     commands = [
         BotCommand(command="raw", description="Какую равки скидывать?: /raw [SubsPlease] (Erai-raws поумолчанию)"),
+        BotCommand(command="rawname", description="Установить название равки: /rawname Kono Sekai wa Fukanzen Sugiru"),
         BotCommand(command="srt", description="реплаем на файл сабов в формате .ass (Конвертирует .ass в .srt)"),
         BotCommand(command="deadline",
                    description="Сколько дней до дедлайна? отображается в сообщении с торрентами (4 поумолчанию)"),
