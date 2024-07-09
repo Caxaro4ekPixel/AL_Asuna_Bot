@@ -57,11 +57,13 @@ class Release(Document):
             log.error("DB problem!")
             log.error(ex)
 
-
     @classmethod
     async def add_episode(cls, episode: Episode) -> None:
         ep_num = str(episode.number).replace(".0", "").replace(".", "_")
-        await cls.update(Set({f"episodes.{ep_num}": episode}))
+        await cls.find_one_and_update(
+            {cls.id == episode.id},
+            Set({f"episodes.{ep_num}": episode})
+        )
 
     @classmethod
     async def check_time(cls, title: Title) -> timedelta:
