@@ -109,7 +109,7 @@ class ApiRssObserver:
 
             al_conf = await BotConfig.get_al_conf()
             log.debug(f"al_conf={al_conf.model_dump_json()}")
-            url = "http://api.anilibria.tv/v2/getUpdates"
+            url = "http://api.anilibria.tv/v3.0/getUpdates"
             params = {
                 "since": al_conf.last_update,
                 "limit": 40,
