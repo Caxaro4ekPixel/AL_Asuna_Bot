@@ -10,6 +10,7 @@ from asuna_bot.filters.chat_type import ChatTypeFilter
 from asuna_bot.db.odm import Release
 from asuna_bot.utils import craft_time_str
 from anilibria import AniLibriaClient
+from loguru import logger as log
 
 
 libria = AniLibriaClient()
@@ -21,7 +22,7 @@ time_router.message.filter(AllowedUserFilter(), Command("time"))
 async def cmd_time(message: types.Message):
     release = await Release.get_by_chat_id(message.chat.id)
     title = await libria.get_title(release.id)
-
+    log.info(f"Checking time for {title}")
     td = await release.check_time(title)
     time = craft_time_str(td)
     if td:
